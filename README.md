@@ -1,2 +1,2 @@
-# michal
+# MICHAL
 MICro Hardness AnaLysis
