@@ -26,6 +26,8 @@
 using namespace cv;
 using namespace std;
 
+std::vector<cv::Mat> imgsToShow;
+
 void printUsage() {
     cout <<"MICHAL - MICro Hardness AnaLysis." << endl;
     cout << endl;
@@ -144,9 +146,11 @@ int main(int argc, char* argv[])
         cout << "Result image (" << argv[2] << ") written." << endl;
     } else {
         //CV_WINDOW_AUTOSIZE
-        namedWindow("Result", CV_WINDOW_AUTOSIZE | CV_WINDOW_KEEPRATIO | CV_GUI_EXPANDED);
+        namedWindow("Result", CV_WINDOW_AUTOSIZE | CV_GUI_EXPANDED);
         resizeWindow("Result", 900, 800);
-        imshow("Result", imgout);
+        imgsToShow.push_back(imgout);
+        imshow("Result", makeCanvas(imgsToShow, 800, 2));
+
         cout <<  "Press any key to continue" << endl ;
         waitKey(0);
     }

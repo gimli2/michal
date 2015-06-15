@@ -180,17 +180,14 @@ void preprocess(Mat& image) {
   line(imc,Point(xoff+lowBound, 0), Point(xoff+lowBound, 200), Scalar(0, 255, 0), 1, CV_AA, 0);
   line(imc,Point(xoff+maxIdx, 180), Point(xoff+maxIdx, 200), Scalar(0, 255, 0), 2, CV_AA, 0);
   cout << "tolerance=" << absTolerance << " maxIdx=" << maxIdx << " lower abs limit=" << lowBound << endl;
-  imshow("Result", imc);
-  waitKey(0);
+  imgsToShow.push_back(imc);
 
   for(int i=0; i<image.rows; i++) {
     for(int j=0; j<image.cols; j++) {
       if((int)image.at<uchar>(i,j) >= lowBound) image.at<uchar>(i,j) = 255;
     }
   }
-
-  imshow("Result", image);
-  waitKey(0);
+  imgsToShow.push_back(image);
 
   // blur
   const int blursize2 = 3;
@@ -198,8 +195,7 @@ void preprocess(Mat& image) {
 
   // remove small continuous areas
   removeSmallContinuousAreas(image, 30*1000);
-  imshow("Result", image);
-  waitKey(0);
+  imgsToShow.push_back(image);
 }
 
 /*****************************************************************************/
@@ -665,17 +661,14 @@ void parse(Mat& image, Mat& original_image,Result& retres,float& is_found, int t
  */
 void findNaiveResults(Mat im, vector<Result>& ret, int& added, int& tries) {
   Mat preprocessed, druhy;
+
   im.copyTo(preprocessed);
-  im.copyTo(druhy);
-
   preprocess(preprocessed);
-  imshow("Result", preprocessed);
-  waitKey(0);
+  imgsToShow.push_back(preprocessed);
 
+  im.copyTo(druhy);
   preprocessCV(druhy);
-  imshow("Result", druhy);
-  imshow("Result2", preprocessed);
-  waitKey(0);
+  imgsToShow.push_back(druhy);
 
   Result bestres;
   float is_found;

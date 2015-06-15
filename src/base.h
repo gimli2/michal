@@ -35,6 +35,7 @@ extern int dbglev;
 
 extern std::string DEBUG_DIR;
 
+extern std::vector<cv::Mat> imgsToShow;
 
 struct Pos{
     int x;
@@ -73,4 +74,5 @@ std::string removeExtension(const std::string& filename);
 
 int findBestResultIdx(cv::Mat& image, std::vector<Result> results);
 
+cv::Mat makeCanvas(std::vector<cv::Mat>& vecMat, int windowHeight, int nRows);
 #endif
