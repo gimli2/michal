@@ -12,11 +12,11 @@
 	double round(double d);
 #endif
 
-#ifdef WIN32
-#define ourImread(filename, isColor) cvLoadImage(filename, isColor)
-#else
+//#ifdef WIN32
+//#define ourImread(filename, isColor) cvLoadImage(filename, isColor)
+//#else
 #define ourImread(filename, isColor) imread(filename, isColor)
-#endif
+//#endif
 
 
 #include <stdio.h>  /* defines FILENAME_MAX */
@@ -30,12 +30,16 @@
 
 #define M_PI 3.14159265358979323846
 
-
-extern int dbglev;
-
-extern std::string DEBUG_DIR;
-
-extern std::vector<cv::Mat> imgsToShow;
+struct config{
+  std::string fin;
+  std::string fout;
+  std::string ftextout;
+  int dbglev;
+  double ppFilterTolerance;
+  int ppHistogramSmooth;
+  int ppBlur;
+  long ppSmallAreasSize;
+};
 
 struct Pos{
     int x;
@@ -55,12 +59,18 @@ struct Result{
     Result();
 };
 
+// TODO: rename to interval
 struct Part{
     int from;
     int to;
     Part(int from, int to);
     Part();
 };
+
+extern config cfg;
+extern int dbglev;
+extern std::string DEBUG_DIR;
+extern std::vector<cv::Mat> imgsToShow;
 
 void drawResultIntoImage(cv::Mat& image, Result r, cv::Scalar color);
 

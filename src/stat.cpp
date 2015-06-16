@@ -85,54 +85,50 @@ vector<Result> filterResultsBySize(vector<Result> res) {
   return res_filtered;
 }
 
-
+/**
+\brief Select best results from given set.
+*/
 StatResult findAndDecideBestStat(vector<Result> res, int tries) {
   StatResult ret;
   ret.is_match = false;
-
-  if(res.size() <= 0)
-    return ret;
+  if(res.size() <= 0) return ret;
 
   tries++;
 
-
   //filter by distance from average center
   if(res.size() > 5) {
-//	cout << "FILTER CENTER BEFORE "<<res.size()<<endl;
+    cout << "FILTER CENTER BEFORE "<<res.size()<<endl;
     res = filterResultsByDistanceFromCenter(res);
-//	cout << "FILTER CENTER AFTER "<<res.size()<<endl;
+    cout << "FILTER CENTER AFTER "<<res.size()<<endl;
   }
-
-
 
   //filter by size
   if(res.size() > 5) {
-//	cout << "FILTER SIZE BEFORE "<<res.size()<<endl;
+    cout << "FILTER SIZE BEFORE "<<res.size()<<endl;
     res = filterResultsBySize(res);
-//	cout << "FILTER SIZE AFTER "<<res.size()<<endl;
+    cout << "FILTER SIZE AFTER "<<res.size()<<endl;
   }
 
   //arithmetic average of all centers
-
   int av_w = 0;	//average width
   int av_h = 0;	//average height
   Pos centeravg(0,0);
-//    int cnt = 0;
 
-//    vector<Result>::iterator = res.size();
   for(vector<Result>::iterator it = res.begin(); it != res.end(); ++it) {
-    av_w += (*it).left + (*it).right;
-    av_h += (*it).bottom + (*it).top;
+    if(cfg.dbglev > 0) {
+      cout << "[L T R B] = " << it->left << " " << it->top << " " << it->right << " " << it->bottom << endl;
+    }
+    av_w += it->left + it->right;
+    av_h += it->bottom + it->top;
 
-    centeravg.x += (*it).center.x;
-    centeravg.y += (*it).center.y;
+    centeravg.x += it->center.x;
+    centeravg.y += it->center.y;
   }
   av_w /= res.size();
   av_h /= res.size();
 
   centeravg.x /= res.size();
   centeravg.y /= res.size();
-
 
   ret.is_match = true;
   ret.bestres = Result(centeravg, av_h/2, av_h/2, av_w/2, av_w/2);

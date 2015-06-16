@@ -641,7 +641,7 @@
 	<sys/stat.h>
 	<unistd.h>
 
-1434376050 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\main.cpp
+1434473103 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\main.cpp
 	<cstdlib>
 	<cstdio>
 	<iostream>
@@ -649,6 +649,8 @@
 	<vector>
 	<queue>
 	<climits>
+	<unistd.h>
+	<getopt.h>
 	<opencv/cv.h>
 	<opencv/highgui.h>
 	"base.h"
@@ -658,7 +660,7 @@
 	"hardness.h"
 	<conio.h>
 
-1434376163 f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\base.h
+1434472149 f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\base.h
 	<vector>
 	<string>
 	<opencv/cv.h>
@@ -679,7 +681,7 @@
 	<opencv/cv.h>
 	<opencv/highgui.h>
 
-1434369818 f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\naive.h
+1434471905 f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\naive.h
 	<string>
 	<vector>
 	"base.h"
@@ -728,7 +730,7 @@
 	"hough.h"
 	"base.h"
 
-1434375955 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\naive.cpp
+1434473164 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\naive.cpp
 	<cstdlib>
 	<cstdio>
 	<iostream>
@@ -742,7 +744,7 @@
 	<opencv/cv.h>
 	<opencv/highgui.h>
 
-1434369788 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\stat.cpp
+1434471393 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\stat.cpp
 	<cstdlib>
 	<cstdio>
 	<iostream>
@@ -754,7 +756,7 @@
 	"base.h"
 	"stat.h"
 
-1434375317 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\base.cpp
+1434403155 source:f:\skola\phd_etapa\vyuka\bp-dp\bp_saska-ales_mikrotvrdost\michal\src\base.cpp
 	<cstdlib>
 	<cstdio>
 	<iostream>

@@ -111,9 +111,6 @@ void removeSmallContinuousAreas(Mat& image, unsigned int maxareasize) {
  * @param image image to preprocess
  */
 void preprocess(Mat& image) {
-  // how much (%) values below histogram peak treshold will be also filtered out
-  double filterTolerance = 0.25;
-
   //const int blursize = 6;
   //blur(image, image, Size(blursize, blursize));
 
@@ -133,11 +130,10 @@ void preprocess(Mat& image) {
   int maxVal = INT_MIN;
   int maxIdx = 0;
   // smoothen the histogram and find maximum in smoothen
-  int epsilon = 4;
   for(int i = 0; i < 256; i++) {
     int sum = 0;
     int cnt = 0;
-    for(int j = i-epsilon; j <= i+epsilon+1; j++) {
+    for(int j = i-cfg.ppHistogramSmooth; j <= i+cfg.ppHistogramSmooth+1; j++) {
       if(j >= 0 && j < 256) {
         sum += pixelscnt[j];
         cnt++;
@@ -156,31 +152,33 @@ void preprocess(Mat& image) {
   cvtColor(image, imc, CV_GRAY2BGR);
 
   // draw histograms
-  int xoff = 200;
-  rectangle(imc, Rect(xoff, 0, 256, 200), Scalar(0, 0, 0), CV_FILLED, 8, 0);
+  Mat histograms(Size(256,300), CV_8UC3);
+  int xoff = 0;
+  rectangle(histograms, Rect(xoff, 0, 256, 200), Scalar(0, 0, 0), CV_FILLED, 8, 0);
   for(int i=0; i<256; i++) {
-    line(imc,Point(xoff+i,202), Point(xoff+i, 210), Scalar(i, i, i), 2, 8, 0);
+    line(histograms,Point(xoff+i,202), Point(xoff+i, 210), Scalar(i, i, i), 2, 8, 0);
   }
   int lastVal = 0;
   for(int i=0; i<256; i++) {
     int val = (int) (200.0 * ((double)pixelscnt[i] / maxVal));
-    line(imc,Point(xoff+i-1,200-lastVal), Point(xoff+i, 200-val), Scalar(255, 100, 100), 1, CV_AA, 0);
+    line(histograms,Point(xoff+i-1,200-lastVal), Point(xoff+i, 200-val), Scalar(255, 100, 100), 1, CV_AA, 0);
     lastVal = val;
   }
   lastVal = 0;
   for(int i=0; i<256; i++) {
     int val = (int) (200.0 * ((double) pixelscntapprox[i] / maxVal));
-    line(imc,Point(xoff+i-1,200-lastVal), Point(xoff+i, 200-val), Scalar(0, 0, 255), 1, CV_AA, 0);
+    line(histograms,Point(xoff+i-1,200-lastVal), Point(xoff+i, 200-val), Scalar(0, 0, 255), 1, CV_AA, 0);
     lastVal = val;
   }
 
   // filter out pixels lighter than (most frequent value - 50)
-  int absTolerance = (int) ((100.0 * filterTolerance) * 2.56);
+  int absTolerance = (int) ((100.0 * cfg.ppFilterTolerance) * 2.56);
   int lowBound = maxIdx - absTolerance;
-  line(imc,Point(xoff+lowBound, 0), Point(xoff+lowBound, 200), Scalar(0, 255, 0), 1, CV_AA, 0);
-  line(imc,Point(xoff+maxIdx, 180), Point(xoff+maxIdx, 200), Scalar(0, 255, 0), 2, CV_AA, 0);
-  cout << "tolerance=" << absTolerance << " maxIdx=" << maxIdx << " lower abs limit=" << lowBound << endl;
-  imgsToShow.push_back(imc);
+  line(histograms,Point(xoff+lowBound, 0), Point(xoff+lowBound, 200), Scalar(0, 255, 0), 1, CV_AA, 0);
+  line(histograms,Point(xoff+maxIdx, 180), Point(xoff+maxIdx, 200), Scalar(0, 255, 0), 2, CV_AA, 0);
+  if(cfg.dbglev > 0) {
+    cout << "absTolerance=" << absTolerance << " maxIdx=" << maxIdx << " lower abs limit=" << lowBound << endl;
+  }
 
   for(int i=0; i<image.rows; i++) {
     for(int j=0; j<image.cols; j++) {
@@ -188,21 +186,19 @@ void preprocess(Mat& image) {
     }
   }
   imgsToShow.push_back(image);
+  imgsToShow.push_back(histograms);
 
-  // blur
-  const int blursize2 = 3;
-  blur(image, image, Size(blursize2, blursize2));
+  blur(image, image, Size(cfg.ppBlur, cfg.ppBlur));
 
   // remove small continuous areas
-  removeSmallContinuousAreas(image, 30*1000);
-  imgsToShow.push_back(image);
+  removeSmallContinuousAreas(image, cfg.ppSmallAreasSize);
 }
 
 /*****************************************************************************/
 /**
  * Find x and y thresholds
  */
-void findXYLimits(Mat& image,vector<Part>& xparts,vector<Part>& yparts,int thresholdoffset, bool dump_debug, string debug_prefix) {
+void findXYLimits(Mat& image, vector<Part>& xparts, vector<Part>& yparts, int thresholdoffset, bool dump_debug, string debug_prefix) {
   long long * rowssum = new long long[image.rows];
   memset(rowssum, 0, sizeof(*rowssum)*image.rows);
   long long * rowssum2 = new long long[image.rows];
@@ -346,7 +342,7 @@ void findDimensionsForCenter(Mat& image, Pos& center, vector<Result>& results) {
   int left = -1;
   int right = -1;
 
-  for(int i = 0; i < 4; i++) {
+  for(int direction = 0; direction < 4; direction++) {
     x = center.x;
     y = center.y;
 
@@ -354,7 +350,7 @@ void findDimensionsForCenter(Mat& image, Pos& center, vector<Result>& results) {
     bool old_white = true;
 
     while(1) {
-      switch(i) {
+      switch(direction) {
       case 0:	//top
         y--;
         break;
@@ -377,7 +373,7 @@ void findDimensionsForCenter(Mat& image, Pos& center, vector<Result>& results) {
       white = image.at<uchar>(y,x) >= 255;
 
       if(white && !old_white) {
-        switch(i) {
+        switch(direction) {
         case 0:	//top
           top = center.y - y;
           break;
@@ -407,8 +403,7 @@ void findDimensionsForCenter(Mat& image, Pos& center, vector<Result>& results) {
  */
 void parsePossibleOnePart(Mat& image, vector<Result>& results, const Part& xpart, const Part& ypart) {
   int sizestatus = image.rows;
-  if(image.cols > sizestatus)
-    sizestatus = image.cols;
+  if(image.cols > sizestatus) sizestatus = image.cols;
 
   char** status = new char*[sizestatus];
   for(int i = 0; i < sizestatus; i++) {
@@ -429,6 +424,7 @@ void parsePossibleOnePart(Mat& image, vector<Result>& results, const Part& xpart
 
   bool doing = true;
 
+  // BFSko????
   Pos p;
   while(!q.empty() && doing) {
     p = q.front();
@@ -581,17 +577,22 @@ void parsePossibleOnePart(Mat& image, vector<Result>& results, const Part& xpart
 }
 
 /*****************************************************************************/
+float calcRatio(int x, int y) {
+  return (x > y) ? (x / y) : (y / x);
+}
 
-void parse(Mat& image, Mat& original_image,Result& retres,float& is_found, int thresholdoffset, bool dump_debug, string debug_prefix) {
+/*****************************************************************************/
+
+void parse(Mat& image, Mat& original_image, Result& retres, float& is_found, int thresholdoffset, bool dump_debug, string debug_prefix) {
   vector<Part> yparts;
   vector<Part> xparts;
-
-  findXYLimits(image,xparts,yparts,thresholdoffset, dump_debug, debug_prefix);
-
+  cout << "treshold = " << thresholdoffset << endl;
+  findXYLimits(image, xparts, yparts, thresholdoffset, dump_debug, debug_prefix);
 
   vector<Result> results;
 
-
+  Mat tmp;
+  cvtColor(original_image, tmp, CV_GRAY2BGR);
 
   //iterate through x and y limits
   for(vector<Part>::iterator xit = xparts.begin(); xit != xparts.end(); ++xit) {
@@ -602,25 +603,28 @@ void parse(Mat& image, Mat& original_image,Result& retres,float& is_found, int t
       int sizex = (xpart.to-xpart.from);
       int sizey = (ypart.to-ypart.from);
 
-      int size = sizex*sizey;
-      if(size < 30*30) {	//too small
+      // too small
+      if((sizex*sizey) < 30*30) {
+        cout << "skipping small area" << endl;
         continue;
       }
 
-      float sizediff;
-      if(sizex > sizey)
-        sizediff = sizex / sizey;
-      else
-        sizediff = sizey / sizex;
-
-      if(sizediff > 1.2) { //not rectangle
+      // not close to rectangle
+      if(calcRatio(sizex, sizey) > 1.2) {
+        cout << "skipping non-rectangle area" << endl;
         continue;
       }
 
+      cout << "part X:" << xpart.from << "-" << xpart.to << " Y:" << ypart.from << "-" << ypart.to << endl;
+
+
+      rectangle(tmp, Point(xpart.from, ypart.from), Point(xpart.to, ypart.to), Scalar(0,0,255), 2, 8, 0);
+
+      // TODO: asi tady to zprasi dobre vysledky pro cisty obraz
       parsePossibleOnePart(image, results, xpart, ypart);
     }
   }
-
+  imgsToShow.push_back(tmp);
 
   //find best match from possible results
   int bestidx = findBestResultIdx(image, results);
@@ -631,21 +635,11 @@ void parse(Mat& image, Mat& original_image,Result& retres,float& is_found, int t
 
     Result bestres = results[bestidx];
 
-    if(dbglev > 0) {
-      cout << " ------------ "<< endl;
+    if(cfg.dbglev > 0) {
       cout << " naive - best result [" << bestres.center.x<<","<< bestres.center.y << "] "<< bestres.top << ","<< bestres.bottom<< ","<< bestres.left<< ","<< bestres.right << endl;
-
     }
-
-    Scalar c = Scalar(0,0,255);
-    drawResultIntoImage(image, bestres, c);
-
-    if(dbglev > 0) {
-      cout << " writing it to original image "<< endl;
-    }
-
-    c = Scalar(0,255,255);
-    drawResultIntoImage(original_image, bestres, c);
+    drawResultIntoImage(original_image, bestres, Scalar(0,255,255));
+    imgsToShow.push_back(original_image);
   } else {
     is_found = false;
   }
@@ -660,15 +654,12 @@ void parse(Mat& image, Mat& original_image,Result& retres,float& is_found, int t
  *  @param tries out parameter of count of tried results of native
  */
 void findNaiveResults(Mat im, vector<Result>& ret, int& added, int& tries) {
-  Mat preprocessed, druhy;
+  Mat preprocessed;
+  imgsToShow.push_back(im);
 
   im.copyTo(preprocessed);
   preprocess(preprocessed);
   imgsToShow.push_back(preprocessed);
-
-  im.copyTo(druhy);
-  preprocessCV(druhy);
-  imgsToShow.push_back(druhy);
 
   Result bestres;
   float is_found;
@@ -676,7 +667,7 @@ void findNaiveResults(Mat im, vector<Result>& ret, int& added, int& tries) {
   //500
   for(int i = 300; i <= 900; i+= 200) {
     stringstream naivename;
-    naivename<<DEBUG_DIR<< "/naive_" << i;
+    naivename<<"./"<< "/naive_" << i;
 
     Mat orig,image;
     im.copyTo(orig);
@@ -684,22 +675,19 @@ void findNaiveResults(Mat im, vector<Result>& ret, int& added, int& tries) {
 
     tries++;
 
-    parse(image, orig, bestres, is_found,i, dbglev > 2, naivename.str());
+    parse(image, orig, bestres, is_found, i, true, naivename.str());
     if(is_found) {
       added++;
       ret.push_back(bestres);
     }
 
     //Dump output file into debug folder
-    if(dbglev > 2) {
+    if(dbglev > 2 || 1) {
       stringstream ss;
       ss << naivename.str() << "_orig.jpg";
-
       imwrite(ss.str().c_str(), orig);
-
       stringstream ss2;
       ss2<< naivename.str() << "_parsed.jpg";
-
       imwrite(ss2.str().c_str(), image);
     }
 

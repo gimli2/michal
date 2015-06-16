@@ -24,6 +24,8 @@ void parsePossibleOnePart(cv::Mat& image, std::vector<Result>& results, const Pa
 
 void parse(cv::Mat& image, cv::Mat& original_image,Result& retres,float& is_found, int thresholdoffset, bool dump_debug, std::string debug_prefix);
 
+float calcRatio(int x, int y);
+
 /**
  *  @brief Get all results of parametrised native
  *  @param im image to search results
