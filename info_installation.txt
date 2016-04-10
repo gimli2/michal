@@ -1,0 +1,18 @@
+install under windows:
+1)
+Add absolute path to MinGW\bin to windows Environment Variable - PATH.
+2)
+Compile by executing src/build-windows.bat
+
+Run programm:
+Run src/main.exe by the command-line interpreter or using testing .bat files.
+
+
+install under linux:
+1)
+Run makefile (make all).
+2)
+Add path to opencv/lib to LD_LIBRARY_PATH variable manually or by executing ". ./libs.sh".
+
+Run programm:
+Run src/main by the command-line interpreter or using testing .sh files.

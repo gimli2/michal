@@ -1,246 +1,434 @@
-#include <cstdlib>
-#include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <math.h>
+#include <algorithm>
+#include <time.h>
 
-#include <vector>
-#include <queue>
-#include <climits>
+#include <sys/types.h>
+#include <sys/stat.h>
 
-#include <unistd.h>
-#include <getopt.h>
-
+#include <opencv2/opencv.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 
-
-#include "base.h"
-#include "hough.h"
-#include "naive.h"
-#include "stat.h"
-#include "hardness.h"
-
-
-#ifdef _WIN32
-#include<conio.h>
+#ifdef WIN32 //_WIN32
+	#define END_ERROR system("pause"); return -1;
+	#define END system("pause"); return 0;
+#else
+	#define END_ERROR return -1;
+	#define END return 0;
 #endif
+
+#include "header_files/preprocess.h"
+#include "header_files/convexHull.h"
+#include "header_files/parameters.h"
+#include "header_files/hardness.h"
+#include "header_files/evaluate.h"
+#include "header_files/detect.h"
+#include "header_files/hough.h"
+#include "header_files/base.h"
 
 using namespace cv;
 using namespace std;
 
-std::vector<cv::Mat> imgsToShow;
-
 config cfg;
+
+extern map<int, pair<int, int> > boarders;
+bool readImagesPaths(int i, int argc, char* const* argv, config* cfg);
 
 /**
 \brief Print help and usage informations.
 */
 void printUsage(int exit_code, char* const* argv) {
-  cout << "MICHAL - MICro Hardness AnaLysis." << endl << endl;
-  cout << "Aplication for analysis of micro hardness measurements." << endl << endl;
-  cout << "Usage: " << argv[0] << " [options] -i INPUTFILE" << endl << endl;
-  cout << "Common options:" << endl;
-  cout << "  -h  --help" << endl;
-  cout << "       Show this help." << endl;
-  cout << "  -d  --dbglev" << endl;
-  cout << "       Debug level (default 0)." << endl;
-  cout << "  -i  --input" << endl;
-  cout << "       Image filename to analyse." << endl;
-  cout << "  -o  --output" << endl;
-  cout << "       Image filename to write detected pattern and results." << endl;
-  cout << "  -t  --text-output" << endl;
-  cout << "       Filename to write text results." << endl << endl;
-  cout << "Preprocess options:" << endl;
-  cout << "  -f  --pp-filter-tolerance (default 0.25)" << endl;
-  cout << "  -e  --pp-hist-smooth (default 4)" << endl;
-  cout << "  -b  --pp-blur (default 3)" << endl;
-  cout << "  -s  --pp-small-areas-size (default 30000)" << endl;
-  exit(exit_code);
+	cout << "MICHAL - MICro Hardness AnaLysis v.2." << endl << endl;
+	cout << "Aplication for analysis of micro hardness measurements." << endl << endl;
+	//cout << "Usage: " << argv[0] << " [options] -i INPUTFILEs" << endl << endl;
+	cout << "Usage: " << argv[0] << "[Common_options] [-x|Process_options] {[-i][INPUTFILEs]}" << endl;
+	cout << "INPUTFILEs:" << endl;
+	cout << "       Image filenames to analyse." << endl;
+	cout << "Common options:" << endl;
+	cout << "  -h" << endl;
+	cout << "       Show this help." << endl;
+	cout << "  -d" << endl;
+	//cout << "       Debug level (default 0)." << endl;
+	cout << "       0 = result output only. (default)" << endl;
+	cout << "       1 = + all information during detection." << endl;
+	cout << "       2 = + saving steps images." << endl;
+	cout << "       3 = + show main steps images." << endl;
+	cout << "       4 = + show all steps images." << endl;
+	cout << "  -i" << endl;
+	cout << "       Textfile of image filenames to analyse." << endl;
+	cout << "  -o" << endl;
+	cout << "       Evaluaded images directory." << endl;
+	cout << "       Default directory is ../out" << endl;
+	cout << "  -t" << endl;
+	cout << "       Filename to write text results." << endl;
+	cout << "Parameter search options:" << endl;
+	cout << "		INPUTFILEs required format: IMAGE HARDNESS" << endl;
+	cout << "  -e	Evolution algorithm search" << endl;
+	cout << "		population_size = size of a population per generation" << endl;
+	cout << "		number_of_generations = generations count" << endl;
+	cout << "		minimum_evaluation_percentage <0,100>" << endl;
+	cout << "  -b	Brute force search" << endl;
+	cout << "Process options:" << endl;
+	cout << "  -k	Noice remove kernel shape:" << endl;
+	cout << "		0 = MORPH_RECT, 1 = MORPH_ELLIPSE (default = 1)" << endl;
+	cout << "  -n	Noice remove kernel size:" << endl;
+	cout << "		<" << boarders[kernel_size].first << "," << boarders[kernel_size].second << ">, default = 17" << endl;
+	cout << "  -f	Center fill size:" << endl;
+	cout << "		<" << boarders[center_fill_size].first << "," << boarders[center_fill_size].second << ">, default = 6" << endl;
+	cout << "  -p	Probabilistic Hough transform" << endl;
+	cout << "  -h	Hough transform accumulator threshold parameter:" << endl;
+	cout << "		<" << boarders[hough_threshold].first << "," << boarders[hough_threshold].second << ">, default = 50" << endl;
+	cout << "  -l	Line intersections sorting distance:" << endl;
+	cout << "		<" << boarders[groups_min_distance].first << "," << boarders[groups_min_distance].second << ">, default = 5" << endl;
+	cout << "  -g	Maximal gab tolerance:" << endl;
+	cout << "		<" << boarders[max_gab_tolerance].first << "," << boarders[max_gab_tolerance].second << ">, default = 100" << endl;
+	cout << "  -c	Hough transform and convex hull comparison tolerance:" << endl;
+	cout << "		<" << boarders[resultCompare_tolerance].first << "," << boarders[resultCompare_tolerance].second << ">, default = 10" << endl;
+	cout << "  -s	Center symmetrize tolerance:" << endl;
+	cout << "		<" << boarders[symmetrize_tolerance].first << "," << boarders[symmetrize_tolerance].second << ">, default = 10" << endl;
+	exit(exit_code);
 }
 
-/**
-\brief Read and parse command line parameters.
-*/
-void readParams(int argc, char* const* argv, config* cfg) {
-  int next_option;
-  // ":" after character = parameter needs argument
-  const char* const short_options = "hd:i:o:t:";
-  const struct option long_options[] = {
-    // long-name, obligation, NULL = getopt_long returns val, val to return
-    // common
-    { "help",       no_argument,        NULL, 'h'},
-    { "dbglev",     required_argument,  NULL, 'd'},
-    { "input",      required_argument,  NULL, 'i'},
-    { "output",     required_argument,  NULL, 'o'},
-    { "textoutput", required_argument,  NULL, 't'},
-    // preprocess
-    { "pp-filter-tolerance", required_argument,  NULL, 'f'},
-    { "pp-hist-smooth", required_argument,  NULL, 'e'},
-    { "pp-blur", required_argument,  NULL, 'b'},
-    { "pp-small-areas-size", required_argument,  NULL, 's'},
 
-    { NULL,         no_argument,        NULL, 0} /* Required at end of array.  */
-  };
+bool readParams(int argc, char* const* argv, config* cfg) {
+	
+	// default values
+	// ------ i/o ---------
+	cfg->dir_out = "/out/";
+	string fout;
+	cfg->writef_open = false;
+	// ------ debug ----------
+	cfg->debug_level = 0;
+	// ------- preproccess -----------
+	cfg->kernel_shape = MORPH_CROSS;
+	cfg->kernel_size = 17;
+	// ------- Detect the puncture ---------
+	cfg->match_method = CV_TM_SQDIFF_NORMED;
+	// ------- fill center --------
+	cfg->center_fill_size = 6;
+	// ------- Hough transform -----------
+	cfg->hough_threshold = 50;
+	cfg->probabilistic = false;
+	// filter and sort the intersections groups
+	cfg->groups_min_distance = 5.;
+	cfg->max_gab_tolerance = 100;
+	// ------ finalize ------------
+	cfg->resultCompare_tolerance = 10.;
+	cfg->symmetrize_tolerance = 10.;
+	// ------ parameters search ------
+	cfg->parameters_search = 0;
+	cfg->population_size = 0;
+	cfg->generations = 0;
+	cfg->min_eval_percentage = 90;
 
-  // default values
-  cfg->dbglev = 0;
-  cfg->ppBlur = 3;
-  cfg->ppFilterTolerance = 0.25;
-  cfg->ppHistogramSmooth = 4;
-  cfg->ppSmallAreasSize = 30000;
 
-  // parse command line
-  do {
-    next_option = getopt_long(argc, argv, short_options, long_options, NULL);
-    switch (next_option) {
-    case 'h': /* -h or --help */
-    case '?':
-      printUsage(0, argv);
-      break;
-    case 'd':
-      cfg->dbglev = atoi(optarg);
-      break;
-    case 'i':
-      cfg->fin = optarg;
-      break;
-    case 'o':
-      cfg->fout = optarg;
-      break;
-    case 't':
-      cfg->ftextout = optarg;
-      break;
-    case 'f':
-      cfg->ppFilterTolerance = atof(optarg);
-      break;
-    case 'e':
-      cfg->ppHistogramSmooth = atoi(optarg);
-      break;
-    case 'b':
-      cfg->ppBlur = atoi(optarg);
-      break;
-    case 's':
-      cfg->ppSmallAreasSize = atol(optarg);
-      break;
-    case -1: /* Done with options.  */
-      break;
-    default: /* Something else: unexpected.  */
-      abort();
-    }
-  } while (next_option != -1);
+	// parse command line
+	int i = 1, tmp;
+	int next_option;
+	bool parse_end = false;
+	while (!parse_end && i < argc){
+		if (argv[i][0] != '-'){
+			//end of options arguments
+			parse_end = true;
+			break;
+		}
 
-  if (!fileExists(cfg->fin)) {
-    cerr <<  "Could not find the input image (" << cfg->fin << ")." << endl ;
-    exit(-2);
-  }
+		// option parameter
+		next_option = argv[i++][1];
+		
+		// true/false arguments
+		if (next_option == 'h' || next_option == '?'){
+			printUsage(0, argv);
+		}
+		if (next_option == 'p'){
+			cfg->probabilistic = true;
+			continue;
+		}
+		if (next_option == 'b'){
+			cfg->parameters_search = 2;
+			continue;
+		}
+
+		// parameter required argumets
+		if (i >= argc){
+			cout << "Missing parameter for -" << (char)next_option << endl;
+			return false;
+		}
+		switch (next_option) {
+		case 'd':
+			if (!readInt(cfg->debug_level, argv[i++], "Debug level"))
+				return false;
+			break;
+		case 'i':
+			cfg->fin = argv[i++];
+			break;
+		case 't':
+			fout = argv[i++];
+			break;
+		case 'o':
+			struct stat info;
+			if( stat( argv[i], &info ) != 0 ){
+				cout << "Cannot access " << argv[i] << endl;
+				return false;
+			}
+			else if( info.st_mode & S_IFDIR ){
+				// argv[i] is a directory
+				cfg->dir_out = argv[i++];
+				cfg->dir_out = "/" + cfg->dir_out + "/";
+			}
+			else{
+				cout << argv[i] << "is not a directory." << endl;
+				return false;
+			}
+			break;
+		case 'k':
+			if (!readInt(cfg->kernel_shape, argv[i++], "Kernel shape"))
+				return false;
+			if (cfg->kernel_shape != 0)
+				cfg->kernel_shape = 1;
+			break;
+		case 'n':
+			if (!readInt(cfg->kernel_size, argv[i++], "Kernel size"))
+				return false;
+			cfg->kernel_size = borderize(cfg->kernel_size, kernel_size);
+			break;
+		case 'f':
+			if (!readInt(cfg->center_fill_size, argv[i++], "Center fill size"))
+				return false;
+			cfg->center_fill_size = borderize(cfg->center_fill_size, center_fill_size);
+			break;
+		case 'h':
+			if (!readInt(cfg->hough_threshold, argv[i++], "Hough threshold"))
+				return false;
+			cfg->hough_threshold = borderize(cfg->hough_threshold, hough_threshold);
+			break;
+		case 'l':
+			if (!readInt(tmp, argv[i++], "Line intersections sorting distance"))
+				return false;
+			cfg->groups_min_distance = (float)borderize(tmp, groups_min_distance);
+			break;
+		case 'g':
+			if (!readInt(tmp, argv[i++], "Maximal gab tolerance"))
+				return false;
+			cfg->max_gab_tolerance = (float)borderize(tmp, max_gab_tolerance);
+			break;
+		case 'c':
+			if (!readInt(tmp, argv[i++], "Comparison tolerance"))
+				return false;
+			cfg->resultCompare_tolerance = (float)borderize(tmp, resultCompare_tolerance);
+			break;
+		case 's':
+			if (!readInt(tmp, argv[i++], "Symmetrize tolerance"))
+				return false;
+			cfg->symmetrize_tolerance = (float)borderize(tmp, symmetrize_tolerance);
+			break;
+
+		// parameter search
+		case 'e':
+			cfg->parameters_search = 1;
+			if (!readInt(cfg->population_size, argv[i++], "Population size"))
+				return false;
+			if (i >= argc){
+				cout << "Missing parameter - number of generations" << endl;
+				return false;
+			}
+			if (!readInt(cfg->generations, argv[i++], "Number of generations"))
+				return false;
+			if (i >= argc){
+				cout << "Missing parameter - minimum evaluation percentage" << endl;
+				return false;
+			}
+			if (!readInt(cfg->min_eval_percentage, argv[i++], "Minimum evaluation percentage"))
+				return false;
+			if (cfg->min_eval_percentage > 100)
+				cfg->min_eval_percentage = 100;
+			break;
+
+		// options end
+		case -1: /* Done with options.  */
+			break;
+		default: /* Something else: unexpected.  */
+			return false;
+		}
+	}
+
+	if (!readImagesPaths(i, argc, argv, cfg))
+		return false;
+	
+
+	if (!fout.empty()){
+		cfg->write_file.open(fout);
+		if (cfg->write_file.is_open())
+			cfg->writef_open = true;
+		else{
+			cout << "Unable to open file " << fout << endl;
+			return false;
+		}
+	}
+
+	return true;
+}
+bool readImagesPaths(int i, int argc, char* const* argv, config* cfg){
+	if (i == argc && cfg->fin.empty()){
+		cout << "Missing input file." << endl;
+		return false;
+	}
+	while (i < argc){
+		// read images form command line
+		if (cfg->parameters_search > 0){
+			// get (image, hardness) for parameter search
+			cfg->images.push_back(argv[i++]);
+			if (i == argc){
+				cout << "Missing hardness result for " << cfg->images.back() << endl;
+				return false;
+			}
+			float val;
+			if (!readFloat(val, argv[i++], "Image hardness value"))
+				return false;
+			cfg->image_hardness.push_back(val);
+		}
+		else{
+			// get images for evaluation
+			cfg->images.push_back(argv[i++]);
+		}
+	}
+	if (!cfg->fin.empty()){
+		// read images form file
+		ifstream read_file(cfg->fin);
+		if (read_file.is_open()){
+			double image_hardness;
+			string image_name;
+
+			while (!read_file.eof()){
+				read_file >> image_name;
+				cfg->images.push_back(image_name);
+				if (cfg->parameters_search){
+					if (read_file.eof()){
+						cout << "Missing hardness result for " << cfg->images.back() << endl;
+						return false;
+					}
+					read_file >> image_hardness;
+					cfg->image_hardness.push_back(image_hardness);
+				}
+			}
+			read_file.close();
+		}
+		else{
+			cout << "Unable to open file " << cfg->fin << endl;
+			return false;
+		}
+	}
+	return true;
 }
 
-int main(int argc, char* argv[]) {
-  if(argc < 2) {
-    printUsage(-1, argv);
-    return -1;
-  }
+bool detectPuncture(Mat & image_working, Mat & temp, Result & result){
+	// preproccess
+	removeNoise(image_working, MORPH_OPEN, cfg.kernel_shape, cfg.kernel_size);
 
-  readParams(argc, argv, &cfg);
+	// Detect the puncture center
+	Result center_result = DetectByTemplate(image_working, temp, cfg.match_method);
+	Point2f center = center_result.center;
+	Result result_hough, result_convex;
 
-  // -------------- read image sums -------------------
-  Mat image;
-  image = ourImread(cfg.fin.c_str(), CV_LOAD_IMAGE_GRAYSCALE);   // Read the file
-  if(!image.data) {
-    cerr <<  "Could not open or find the image" << endl ;
-    return -1;
-  }
+	// fill the center star
+	removeNoise(image_working, MORPH_CLOSE, cfg.kernel_shape, cfg.kernel_size);
+	Mat kernel = getStructuringElement(cfg.kernel_shape, Size(cfg.center_fill_size, cfg.center_fill_size));
+	erode(image_working, image_working, kernel);
+	floodFill(image_working, center, Scalar::all(0));
 
-  Mat orig;
-  image.copyTo(orig);
+	// fill small areas (remove possible inner lines)
+	removeNoise(image_working, MORPH_CLOSE, cfg.kernel_shape, cfg.kernel_size);
 
-  Result bestres;
+	// Hough + convex hull method
+	result_hough = HoughTransf(image_working, center, cfg.hough_threshold, cfg.probabilistic, cfg.groups_min_distance, cfg.max_gab_tolerance);
+	result_convex = ConvexHullMethod(image_working.clone(), center);
 
-  vector<Result> ret;
-  int added = 0;
-  int tries = 0;
-
-  cout << "Image loaded..." << endl;
-  findNaiveResults(image, ret, added, tries);
-  cout << "Processing image 1/3... (naive)" << endl;
-  //findHoughResults(image, ret, added, tries);
-  cout << "Processing image 2/3... (Hough)" << endl;
-  StatResult statres = findAndDecideBestStat(ret, tries);
-  cout << "Processing image 3/3..." << endl;
-
-  // prepare output image
-  Mat imgout(image.size(), CV_8UC3);
-  cvtColor(image, imgout, CV_GRAY2BGR);
-
-  if(statres.is_match) {
-    double HV = 0.1;
-    double pxsize = 0.1277E-6;
-
-//	HardnessResult hardness = round(computeHardness(statres.bestres, HV, pxsize)*1E-5)/10.;
-    HardnessResult hardness = computeHardness(statres.bestres, HV, pxsize);
-    hardness.hardness = round(hardness.hardness*1E-5)/10.;
-    hardness.w = round(hardness.w*1E8)/100.;
-    hardness.h = round(hardness.h*1E8)/100.;
-
-//	cout << "Micro hardness is: "<<hardness.hardness << endl;
-    cout << hardness.hardness << "\t = Micro hardness"<< endl;
-    cout << hardness.w << "\t = Width "<<endl;
-    cout << hardness.h << "\t = Height "<<endl;
-
-    //FONT_HERSHEY_PLAIN (http://docs.opencv.org/modules/core/doc/drawing_functions.html)
-    int fontFace = CV_FONT_HERSHEY_DUPLEX;
-    double fontScale = 0.5;
-    int thickness = 1;
-
-    stringstream ss;
-    ss << "Hardness: "<<hardness.hardness;
-
-    string text = ss.str();
-    int baseline=0;
-    Size textSize = getTextSize(text, fontFace, fontScale, thickness, &baseline);
-    baseline += thickness;
-
-    //text background
-    rectangle( imgout, Point( 0, 0 ),
-               Point( 2*40+textSize.width+40, 40+textSize.height),
-               Scalar( 255, 255, 255 ), -1, 8);
-    // then put the text itself
-    putText(imgout, text, Point(20, 20), fontFace, fontScale, Scalar::all(0), thickness, 8);
-
-    ss.str(string());
-    ss << "w: "<<hardness.w << "um h: " << hardness.h << "um";
-    text = ss.str(); //
-    putText(imgout, text, Point(20, 40), fontFace, fontScale, Scalar::all(0), thickness, 8);
-    //cv::addText(image, "utf8znaky", cv::Point(100, 50), cv::fontQt("Times"));
-
-    cout << "Successfully found a pattern." << endl;
-
-    if(cfg.fout.length() > 0) {
-      string fileout = removeExtension(cfg.fout) + ".txt";
-      ofstream ofs(cfg.fout.c_str());
-      ofs << hardness.hardness << "\t = Micro hardness"<< endl;
-      ofs << hardness.w << "\t = Width "<<endl;
-      ofs << hardness.h << "\t = Height "<<endl;
-      ofs.close();
-    }
-
-    drawResultIntoImage(imgout, statres.bestres, Scalar( 0, 200, 0));
-
-  } else {
-    cerr << "Error finding pattern." << endl;
-  }
-
-  if(cfg.fout.length() > 0) {
-    imwrite(cfg.fout, imgout);
-    cout << "Result image (" << cfg.fout << ") written." << endl;
-  } else {
-    //CV_WINDOW_AUTOSIZE
-    namedWindow("Result", CV_WINDOW_AUTOSIZE | CV_GUI_EXPANDED);
-    resizeWindow("Result", 900, 800);
-    imgsToShow.push_back(imgout);
-    imshow("Result", makeCanvas(imgsToShow, 850, 3));
-    cout <<  "Press any key to continue" << endl ;
-    waitKey(0);
-  }
-
-  return 0;
+	if (!resultCompare(center, result_hough, result_convex, result, cfg.resultCompare_tolerance)){
+		// The puncture not detected (too much deformation, noise or missing)
+		cout << "Hardness cannot be calculated." << endl;
+		if (cfg.writef_open) cfg.write_file << "Hardness cannot be calculated." << "\r\n";
+		return false;
+	}
+	symmetrize(center, result, cfg.symmetrize_tolerance);
+	return true;
 }
+
+int main(int argc, char* argv[])
+{
+	if (argc < 2){
+		printUsage(-1, argv);
+		END_ERROR
+	}
+	
+	if (!readParams(argc, argv, &cfg)){
+		END_ERROR
+	}
+
+	Mat temp;
+	if (!GetTemplateImg(temp)){
+		cout << "Error reading template image." << endl;
+		END_ERROR
+	}
+
+
+	if (cfg.parameters_search > 0){
+		try{
+			float min_eval_poercent = (float)cfg.min_eval_percentage / 100;
+			if (cfg.parameters_search == 1){
+				int population_size = cfg.population_size;
+				int generations = cfg.generations;
+				
+				evolutionSearch(population_size, generations, min_eval_poercent, temp);
+			}
+			else{
+				bruteForceSearch(min_eval_poercent, temp);
+			}
+		}
+		catch (int e){
+			if (e){}
+			END_ERROR
+		}
+
+
+		END
+	}
+
+
+	for (string image_path : cfg.images)
+	{
+		Mat image;
+		SetPath(image_path);
+
+		image = imread(image_path, 0);
+		if (!image.data){
+			cout << "Error reading image " << image_path << endl;
+			END_ERROR
+		}
+		else{
+			cout << endl << "Proccessing image " << image_path << endl;
+			if (cfg.writef_open) cfg.write_file << "\r\n" << "Proccessing image " << image_path << "\r\n";
+		}
+
+
+		// Convert to gray-style image
+		Mat image_working;
+		threshold(image, image_working, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+
+
+		Result result;
+		if (detectPuncture(image_working, temp, result)){
+
+			DrawResult(image, result, Scalar(0, 0, 0));
+			DrawHardness(image, result);
+	
+		}
+		SaveImg(image, image_path, "_myeval", (cfg.debug_level >= 2));
+		
+	}
+
+
+	END
+}
+
