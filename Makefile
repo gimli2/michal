@@ -9,7 +9,7 @@ all: links compile libs
 clean:
 	rm -rf *.o 2>/dev/null;find ./opencv/lib/ -type l -delete
 run: 
-	chmod +x ./run_it\ -\ all_in_pictures_data.sh;./run_it\ -\ all_in_pictures_data.sh
+	cd ./test_scripts;chmod +x ./run_it\ -\ all_in_pictures_data.sh;./run_it\ -\ all_in_pictures_data.sh
 
 libs:
 	. ./libs.sh
