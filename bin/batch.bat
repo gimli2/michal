@@ -1,1 +1,0 @@
-test.exe "../../cd/testdata/D470 Asym. Rolling-DR6-RD-namerene.csv" "../../cd/testdata/PICTURES" "../../cd/testdata/out2"
