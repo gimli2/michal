@@ -32,6 +32,9 @@
 \usepackage{multirow}
 \usepackage{adjustbox}
 \usepackage[caption=false]{subfig}
+\usepackage{hyphenat}
+\hyphenation{kon-struk-èní kon-struk-èních}
+
 
 \department{Katedra teoretické informatiky}
 \title{Zlepšení pøesnosti zpracování obrazu pro mìøení mikrotvrdosti}
@@ -42,15 +45,17 @@
 \acknowledgements{Rád bych zde podìkoval Ing.~Martinu Šlapákovi za ochotu, odborné rady a laskavost pøi vedení této práce. Dále bych rád podìkoval své rodinì za jejich podporu.}
 \abstractCS{
   Tato práce pojednává o~metodách zpracování digitálního obrazu a~jejich implementaci pro urèení mikrotvrdosti na základì obrazových dat poøízených z~mikrotvrdomìru. 
-  V~úvodu práce jsou uvedeny metody mìøení mikrotvrdossti a~po seznámení se s~pøedešlou prací MICHAL jsou rozebrány zdroje jejich nepøesností. Dùsledkem je implementace nového algoritmu pro detekci vpichu.
+  V~úvodu práce jsou uvedeny metody mìøení mikrotvrdosti a~po seznámení se s~pøedešlou prací MICHAL jsou rozebrány zdroje jejich nepøesností. Dùsledkem je implementace nového algoritmu pro detekci vpichu.
   Následuje popis postupu jednotlivých fází novì implementovaného algoritmu, poèínaje pøedzpracováním obrazových dat. Dále nalezneme støed hledaného vpichu, s~jehož pomocí využitím hranové detekce s~Houghovou transformací a~metodou konvexního obalu urèíme dvì na sobì nezávislá øešení detekce vpichu. V~koneèné fázi slouèíme tyto výsledky a~vypoèítáme hledanou mikrotvrdost, popøípadì rozhodneme o~neúspìchu detekce pro dané mìøení.
   Navržené metody jsou implementovány v~jazyce \texttt{C++} za použití knihovny \texttt{OpenCV}.
   Výsledkem práce je zlepšení spolehlivosti detekce vpichu a~pøesnosti mìøení jeho rozmìrù pro urèení mikrotvrdosti mìøeného materiálu.
 }
 \abstractEN{
   This thesis discusses methods of digital image processing and their implementation to determine the microhardness based on image data acquired from microhardness tester.
-  In the introduction of the work are given the methods of microhardness measurement and after becoming familiar with the previous work MICHAL the sources of its inaccuracies are analysed. As a~result a~new algorithm for puncture detection is implemented.
-  The following is a~description of the individual phases of the newly embedded algorithm, beginning pre-processing of image data. Furthermore, we find the center of the searched puncture through which the use of edge detection with the Hough transform method and the convex hull method to determine two independent detection solutions. In the final phase we will merge these results and calculate searched microhardness, or decide on failure detection for the measurement.
+  In the introduction of the work there are given the methods of microhardness measurement and after becoming familiar with the previous work MICHAL the sources of its inaccuracies are analysed. As a~result a~new algorithm for puncture detection is implemented.
+  The following is a~description of the individual phases of the newly embedded algorithm, beginning pre-processing of image data. 
+  Furthermore, we find the center of the analysed puncture and use it for edge detection with the Hough transform method and the convex hull method to determine two independent detection solutions. 
+  In the final phase we will merge these results and calculate searched microhardness, or decide on failure detection for the measurement.
   The proposed methods are implemented in the \texttt{C++} language with an \texttt{OpenCV} library.
   The result of this work is the improvement of the reliability of the puncture detection and evaluation of precision of its dimensions to determine the microhardness measured material.
 }
@@ -75,18 +80,18 @@
   Proto je pro úspìšné mìøení mikrotvrdosti nezbytná právì samotná detekce vpichu a~následné rozpoznání jeho rozmìrù z~digitálního obrazu.
   Bìžným postupem v~takovémto pøípadì právì proto bývá algoritmická detekce objektù v~obraze.
 
-  Práce pojednává o~nìkolika metodách zpracování obrazu a~jejich využití k detekci vpichu a~urèení jeho rozmìrù pro výpoèet mikrotvrdosti materiálu. Dále o~návrhu vhodného pøedzpracování obrazu, které je napøíklad pro Hougovu transformaci~\ref{sec:hough} nezbytné.
+  Práce pojednává o~nìkolika metodách zpracování obrazu a~jejich využití k~detekci vpichu a~urèení jeho rozmìrù pro výpoèet mikrotvrdosti materiálu. Dále o~návrhu vhodného pøedzpracování obrazu, které je napøíklad pro Hougovu transformaci~\ref{sec:hough} nezbytné.
 \end{introduction}
 
 \chapter{Cíl práce}
-  Úspìšnost vyhodnocování obrázkù u~dodávaného SW mikrotvrdomìru Qness Q10 (resp. Q30) je nedostateèná, vznikl tedy alternativní SW s~názvem MICHAL, jenž je výsledkem starší práce~\cite{saska}, jejímž cílem bylo dosáhnout vìtší úspìšnosti v~urèování mikrotvrdosti. I pøes vyšší úspìšnost pøi detekci vpichu dosahuje nástroj MICHAL nižší pøesnosti než originální SW, což znesnadòuje praktické použití.
+  Úspìšnost vyhodnocování obrázkù u~dodávaného SW mikrotvrdomìru Qness Q10 (resp. Q30) je nedostateèná, vznikl tedy alternativní SW s~názvem MICHAL (MICro Hardness AnaLysis), jenž je výsledkem starší práce~\cite{saska}, jejímž cílem bylo dosáhnout vìtší úspìšnosti v~urèování mikrotvrdosti. I pøes vyšší úspìšnost pøi detekci vpichu dosahuje nástroj MICHAL nižší pøesnosti než originální SW, což znesnadòuje praktické použití.
 
   Cílem této práce je tedy zlepšení pøesnosti a~spolehlivosti programu pro automatické urèování mikrotvrdosti na základì obrazových dat z~mikrotvrdomìru a~jeho konfigurace. Pro každý snímek bude detekována pozice vpichu a~jeho velikost pøevedena z~pixelù na reálné rozmìry v~mikrometrech. Z~této velikosti je výslednì vypoètena mikrotvrdost pro dané mìøení.
   %definice cílu 
 
 \chapter{Analýza a~návrh}
   \section{Mikrotvrdost}
-    Jednou ze základních mechanických vlastností konstrukèních materiálù je tvrdost. Ta je definována jako odpor proti vnikání tìlesa do~povrchu zkoušeného materiálu~\cite{pluhar}. Posuzuje se pak velikost stopy vnikajícího tìlesa vhodného tvaru (kulièka, kužel, jehlan) a~z dostateènì tvrdého materiálu (kalená ocel, slinutý karbid, diamant). Mìøení tvrdosti je navíc narozdíl od vìtšiny dalších mechanických vlastností rychlé a~jednoduché a~není nezbytnì nutné znehodnocení èi destrukce testovaného pøedmìtu.
+    Jednou ze základních mechanických vlastností konstrukèních materiálù je tvrdost. Ta je definována jako odpor proti vnikání tìlesa do~povrchu zkoušeného materiálu~\cite{pluhar}. Posuzuje se pak velikost stopy vnikajícího tìlesa vhodného tvaru (kulièka, kužel, jehlan) a~z dostateènì tvrdého materiálu (kalená ocel, slinutý karbid, diamant). Mìøení tvrdosti je navíc na rozdíl od vìtšiny dalších mechanických vlastností rychlé a~jednoduché a~není nezbytnì nutné znehodnocení èi destrukce testovaného pøedmìtu.
     
     Testy tvrdosti jsou provádìny v~makroskopickém, nebo mikroskopickém mìøítku v~závislosti na celkové zátìži. Dále se liší ve tvaru již zmínìného indentoru a~na jejich zamìøení (typu testovaného materiálu).
 
@@ -106,16 +111,16 @@
     \begin{itemize}
       \item Statické
 
-      Indentor se vtlaèuje do~zkoušeného materiálu klidnou silou ve smìru kolmém k povrchu. Do~tìchto metod zahrnujeme zkoušky vrypové a~vnikající.
+      Indentor se vtlaèuje do~zkoušeného materiálu klidnou silou ve smìru kolmém k~povrchu. Do~tìchto metod zahrnujeme zkoušky vrypové a~vnikající.
       \item Dynamické
 
       Zkušební tìlísko zde pùsobí rázem. Tvrdost se pak urèuje v~závislosti na velikosti deformace povrchu zkoušeného tìlesa, nebo z~velikosti odrazu zkušebního tìlíska. Dynamické vnikající zkoušky jsou provádìny pomocí kladívka Poldi nebo Baumannova kladívka.
     \end{itemize}
 
   \section{Test podle Vickerse} \label{sec:vickers}
-    Jedná se o~statický, vnikající test tvrdosti. Je možné jej použít v~mikroskopickém i makroskopickém mìøítku. Indentor je zde diamantový ve tvaru pravidelného ètyøbokého jehlanu se ètvercovou základnou a~daným vrcholovým úhlem 136° mezi protilehlými stìnami~(viz. obr.~\ref{fig:hrot}).
+    Jedná se o~statický, vnikající test tvrdosti. Je možné jej použít v~mikroskopickém i makroskopickém mìøítku. Indentor je zde diamantový ve tvaru pravidelného ètyøbokého jehlanu se ètvercovou základnou a~daným vrcholovým úhlem 136° mezi protilehlými stìnami~(viz obr.~\ref{fig:hrot}).
 
-    Výsledné jednotky tvrdosti jsou známé jako Vickers Pyramid Number ($HV$) a~je možné je spoèítat v~závislosti na délce úhlopøíèek $d_1$ a~$d_2$ vpichu zanechaném v~mìøeném tìlesu v~milimetrech a~velikostí síly $F$ použité na indentor v~tzv. kilopondech tj. tíha indentoru v~místì tíhového zrychlení. Pro prùmìrnou tíhovou sílu na zemském povrchu a~pro indentor o~hmotnosti $m$ je síla $F=9.80665m$ newtonù.
+    Výsledné jednotky tvrdosti jsou známé jako Vickers Pyramid Number ($HV$) a~je možné je spoèítat v~závislosti na délce úhlopøíèek $d_1$ a~$d_2$ vpichu zanechaném v~mìøeném tìlesu v~milimetrech a~velikostí síly $F$ použité na indentor v~tzv. kilopondech tj. tíha indentoru v~místì tíhového zrychlení. Pro prùmìrnou tíhovou sílu na zemském povrchu a~pro indentor o~hmotnosti $m$ je síla $F=9.80665 \cdot m$ newtonù.
     $$HV=\frac{F}{A}=\frac{2F\sin(\frac{136°}{2})}{d_1*d_2}\approx{\frac{1.8544F}{d_1*d_2}}$$
     
     \begin{figure}
@@ -126,7 +131,7 @@
     \end{figure}
 
   \section{Mikrotvrdomìr Qness Q10}
-    Testovaná data byla poøízena na pøístoji Qness Q10~(viz. obr.~\ref{fig:qness_q10}), který lze osadit více druhy hrotù pro rùzné typy testù. K dispozici pro zisk testovacích dat byl pouze hrot pro test podle Vickerse, proto se dále v~této práci budeme zabívat pouze tímto testem.
+    Testovaná data byla poøízena na pøístoji Qness Q10~(viz obr.~\ref{fig:qness_q10}), který lze osadit více druhy hrotù pro rùzné typy testù. K~dispozici pro zisk testovacích dat byl pouze hrot pro test podle Vickerse, proto se dále v~této práci budeme zabívat pouze tímto testem.
 
     \begin{figure}
       \centering
@@ -140,22 +145,22 @@
     
     Pøed samotnou detekcí se však ukázalo nejen z~èasového, ale i z~dùvodu pøesnosti nezbytné obraz pøedzpracovat ve formì filtrace nežádoucího pozadí a~drobných vad materiálu jakožto napøíklad škrábance vzniklé leštìním.
 
-    V~pøedchozí práci MICHAL~\cite{saska} poté následovala fáze zjištìní velikosti vpichu za pomoci slouèení výsledkù z~metod hledání hran a~hledání prahù. Drobné nepøesnosti mìøení mohli vznikat právì ve fázi hledaní prahù, kde byl vpich lokalizován pomocí histogramu odstínù šedi. Právì ten mùže být znaènì ovlivnìn vìtší vadou materiálu neodfiltrovanou spoleènì s~pozadím. Hlavní pøíèinou je však neschopnost rozpoznání celkovì špatného mìøení, napøíklad mìøení na okraji materiálu èi v~prasklinì, kde èást vpichu zcela chybí, nebo je až pøespøíliš deformována. Tento problém zde øešíme kombinací hranové detekce~(viz. kapitola~\ref{sec:hough}) a~konvexního~obalu~(viz. kapitola~\ref{sec:convex_hull}) zároveò s~lokalizací za pomoci støedu vpichu~(viz. kapitola~\ref{sec:center}). Každá z~tìchto metod je schopná vpich s~dostateènou pøesností detekovat, porovnáme-li tedy jejich výsledky, pak lze s~malou tolerancí urèit, zda byl vpich úspìšnì nalezen.
+    V~pøedchozí práci MICHAL~\cite{saska} poté následovala fáze zjištìní velikosti vpichu za pomoci slouèení výsledkù z~metod hledání hran a~hledání prahù. Drobné nepøesnosti mìøení mohly vznikat právì ve fázi hledaní prahù, kde byl vpich lokalizován pomocí histogramu odstínù šedi. Právì ten mùže být znaènì ovlivnìn vìtší vadou materiálu neodfiltrovanou spoleènì s~pozadím. Hlavní pøíèinou je však neschopnost rozpoznání celkovì špatného mìøení, napøíklad mìøení na okraji materiálu èi v~prasklinì, kde èást vpichu zcela chybí, nebo je až pøespøíliš deformována. Tento problém zde øešíme kombinací hranové detekce~(viz kapitola~\ref{sec:hough}) a~konvexního~obalu~(viz kapitola~\ref{sec:convex_hull}) zároveò s~lokalizací za pomoci støedu vpichu~(viz kapitola~\ref{sec:center}). Každá z~tìchto metod je schopná vpich s~dostateènou pøesností detekovat, porovnáme-li tedy jejich výsledky, pak lze s~malou tolerancí urèit, zda byl vpich úspìšnì nalezen.
     
 \chapter{Realizace}
-  Zpracování obrazu probíhá v~nìkolika fázích~(viz. obr.~\ref{fig:faze_programu}). Nejprve se provede pøedzpracování~\ref{sec:threshold_whole}, kterým se zbavíme nežádoucího pozadí vpichu a~drobných vad materiálu. V~další fázi detekcí za použití vzoru~\ref{sec:center} nalezneme støed vpichu. Následují dvì na sobì nezávislé èásti Houghova transformace~\ref{sec:hough} a~konvexní obal~\ref{sec:convex_hull}, jenž obì tyto metody naleznou hledaný vpich a~pøedají výsledek jejich detekce k dalšímu zpracování. V~koneèné fázi~\ref{sec:slouceni} jsou pak oba výsledky porovnány a~rozhodne se o~tom, zda byl výsledný vpich nalezen èi nikoli. V~pøípadì úspìchu je vypoèítána mikrotvrdost a~výsledek detekce zakreslen do~výstupního obrazu.
+  Zpracování obrazu probíhá v~nìkolika fázích~(viz obr.~\ref{fig:faze_programu}). Nejprve se provede pøedzpracování~(viz sekce~\ref{sec:threshold_whole}), kterým se zbavíme nežádoucího pozadí vpichu a~drobných vad materiálu. V~další fázi detekcí za použití vzoru~(sekce~\ref{sec:center}) nalezneme støed vpichu. Následují dvì na sobì nezávislé èásti Houghova transformace~(sekce~\ref{sec:hough}) a~konvexní obal~(sekce~\ref{sec:convex_hull}). Obì tyto metody naleznou hledaný vpich a~pøedají výsledek své detekce k~dalšímu zpracování. V~koneèné fázi~(sekce~\ref{sec:slouceni}) jsou pak oba výsledky porovnány a~rozhodne se o~tom, zda byl výsledný vpich nalezen èi nikoli. V~pøípadì úspìchu je vypoèítána mikrotvrdost a~výsledek detekce zakreslen do~výstupního obrazu.
 
-  Další nezávislou èástí programu je vyhledávání parametrù~\ref{sec:parameters}, jenž pro maximalizaci pøesnosti detekce vpichu za využití evoluèního algoritmu nalezne volitelné parametry pro námi využité funkce pøi detekci.
+  Další nezávislou èástí programu je vyhledávání parametrù~(sekce~\ref{sec:parameters}), jenž pro maximalizaci pøesnosti detekce vpichu za využití evoluèního algoritmu nalezne volitelné parametry pro námi využité funkce pøi detekci.
 
   \begin{figure}[h]
     \centering
-    \includegraphics[scale=1]{faze-programu.jpg}
+    \includegraphics[scale=1]{faze-programu.pdf}
     \caption{ Jednotlivé fáze programu a~jejich poøadí. }
     \label{fig:faze_programu}
   \end{figure}
 
   \section{Pøedzpracování} \label{sec:threshold_whole}
-    Vstupní digitální obraz z~mikrotvrdomìru nejdøíve pøevedeme do~èernobílé barvy, resp. odstínù šedi. Nìkteré z~námi použitých operací není totiž možné aplikovat na barevný obraz~\ref{subsec:threshold} \ref{subsec:morphology} \ref{subsec:canny} \ref{sec:convex_hull}. Barva je navíc k øešení definovaného problému nadbyteèná a~mnohdy jsou vstupní data poøizována již jako èernobílá.
+    Vstupní digitální obraz z~mikrotvrdomìru nejdøíve pøevedeme do~èernobílé barvy, resp. odstínù šedi. Nìkteré z~námi použitých operací není totiž možné aplikovat na barevný obraz, konkrétnì pro náš pøípad se jedná o prahování~(sekce \ref{subsec:threshold}), morfologické operace~(sekce \ref{subsec:morphology}), Cannyho hranový detektor~(sekce \ref{subsec:canny}) a konvexní obal~(sekce \ref{sec:convex_hull}). Barva je navíc k~øešení definovaného problému nadbyteèná a~mnohdy jsou vstupní data poøizována již jako èernobílá.
 
     Výsledkem této fáze programu pøedzpracování bude odstranìné nežádoucího pozadí zpracovávaného obrazu pomocí prahování a~odstranìní zbytkového šumu a~pøípadných drobných vad materiálu morfologickými operacemi.
 
@@ -201,7 +206,7 @@
         &=W_b(t)W_f(t)[\mu_b(t)-\mu_f(t)]^2
       \end{align}
       
-      Práh, který nakonec dosahoval minimálního rozptylu $\sigma_W^2$, popøípadì maximálního rozptylu pro $\sigma_B^2$, je použit pro prahování na výstupní obraz~(viz. obr.~\ref{fig:threshold_picture}).
+      Práh, který nakonec dosahoval minimálního rozptylu $\sigma_W^2$, popøípadì maximálního rozptylu pro $\sigma_B^2$, je použit pro prahování na výstupní obraz~(viz obr.~\ref{fig:threshold_picture}).
 
       \begin{figure}
         \centering
@@ -234,7 +239,7 @@
       Morfologické operace se bìžnì využívají na binární obraz, kde bílé pixely pøedstavují popøedí obrazu, v~našem pøípadì je tedy ještì nutné obraz pøed tímto zpracováním barevnì invertovat.
 
   \section{Detekce vzorem} \label{sec:center}
-    Další fází programu je nalezení støedu vpichu, k tomu využíváme detekce za pomocí vzorového vpichu~(viz. obr.~\ref{fig:puncture_template}) vyøíznutého a~upraveného z~již døíve pøedzpracovaného mìøení. 
+    Další fází programu je nalezení støedu vpichu, k~tomu využíváme detekce za pomocí vzorového vpichu~(viz obr.~\ref{fig:puncture_template}) vyøíznutého a~upraveného z~již døíve pøedzpracovaného mìøení. 
     \begin{figure}
       \centering
       \includegraphics[scale=0.3]{puncture_template.jpg}
@@ -242,7 +247,7 @@
       \label{fig:puncture_template}
     \end{figure}
 
-    Tato detekce objektu~\cite{object_detection} postupnì po krocích velikosti 1 porovnává pøekrývající se èásti v~hledaném obrazu velikosti vzoru oproti vzoru samotnému za použití specifické metody (viz. níže) a~ukládá tyto výsledky porovnání do~výsledné matice $R$ velikosti $(W-w+1)\times (H-h+1)$, kde $W\times H$ je velikost pùvodního obrazu a~$w\times h$ velikost vzoru.
+    Tato detekce objektu~\cite{object_detection} postupnì po krocích velikosti 1 porovnává pøekrývající se èásti v~hledaném obrazu velikosti vzoru oproti vzoru samotnému za použití specifické metody (viz níže) a~ukládá tyto výsledky porovnání do~výsledné matice $R$ velikosti $(W-w+1)\times (H-h+1)$, kde $W\times H$ je velikost pùvodního obrazu a~$w\times h$ velikost vzoru.
 
     Jako srovnávací metodu jsme použili \text{CV\_TM\_SQDIFF\_NORMED}
     $$R(x,y)= \frac{\sum_{x'=0}^{w-1}\sum_{y'=0}^{h-1} (T(x',y')-I(x+x',y+y'))^2}{\sqrt{\sum_{x'=0}^{w-1}\sum_{y'=0}^{h-1}T(x',y')^2 \cdot \sum_{x'=0}^{w-1}\sum_{y'=0}^{h-1} I(x+x',y+y')^2}}$$
@@ -250,8 +255,8 @@
     Nejlepší pozice pro srovnání a~námi nalezený støed pak lze nalézt jako globální minimum v~výsledné matici $R$. Ukázka takto nalezeného centra vpichu viz. obr.~\ref{fig:center_detect}.
     \begin{figure}
       \centering
-      \includegraphics[scale=0.5]{MwPic-center-detect.jpg}
-      \caption{ Nalezení støedu vpichu na pøedzpracovaném obrazu. }
+      \includegraphics[width=\textwidth]{MwPic-center-detect.jpg}
+      \caption{ Nalezení støedu vpichu na pøedzpracovaném obrazu (vlevo). Vpravo matice znázoròující pravdìpodobnosti výskytu hledaného vzoru. }
       \label{fig:center_detect}
     \end{figure}
 
@@ -269,7 +274,7 @@
     \end{figure}
 
     \bigskip
-    Po úspìšném nalezení støedu vpichu následuje jeho vyplnìní. K tomu nám opìt poslouží morfologické operace~\ref{subsec:morphology}, v~tomto pøípadì však využijeme Closing transformaci~\cite{close_transform}. Ta se opìt skládá z~postupné aplikace operací dilatace a~eroze, na rozdíl ale od Opening transformace jsou v~opaèném poøadí.
+    Po úspìšném nalezení støedu vpichu následuje jeho vyplnìní. K~tomu nám opìt poslouží morfologické operace~(viz sekce~\ref{subsec:morphology}), v~tomto pøípadì však využijeme Closing transformaci~\cite{close_transform}. Ta se opìt skládá z~postupné aplikace operací dilatace a~eroze, na rozdíl ale od Opening transformace jsou v~opaèném poøadí.
     $$dst = close(image, element) = erode(dilate(image, element))$$
     To má za pøíèinu uzavøení menších dìr a~otvorù, stejnì jakožto možných mezer mezi støedem vpichu a~pozadím. Díky tomu lze použít funkci \texttt{floodFill()} a~vyplnit tím i zbytek bílého prostoru. Ukázka výsledného vyplnìní viz. obr.~\ref{fig:center_fill}.
 
@@ -298,9 +303,9 @@
       \begin{enumerate}
         \item Odfiltrování šumu
 
-          Pro tento úèel je použit Gaussový filtr. Výpoèet je vhodné realizovat za pomoci konvoluce, pøíklad k tomu požitého jádra $K$ tak mùže být
+          Pro tento úèel je použit Gaussový filtr. Výpoèet je vhodné realizovat za pomoci konvoluce, pøíklad k~tomu požitého jádra $K$ tak mùže být
           $$
-          K = \dfrac{1}{159}\begin{bmatrix}
+          K~= \dfrac{1}{159}\begin{bmatrix}
           2 & 4 & 5 & 4 & 2 \\
           4 & 9 & 12 & 9 & 4 \\
           5 & 12 & 15 & 12 & 5 \\
@@ -313,7 +318,7 @@
           Cannyho detektor v~zásadì nalézá hrany v~místech, kde se rozdíl odstínù šedi v~obrazu liší nejvíce. Tyto oblasti se urèí za pomoci gradientu obrazu. Gradient se v~každém pixelu vypoèítá za pomoci Sobelova operátoru, kde prvním krokem je aproximace gradientu ve smìru osy $x$ $\mathbf{G}_x$ a~následnì ve smìru osy $y$ $\mathbf{G}_y$ respektive aplikací jádra matice. Velikost gradientu nám pak udává sílu hrany a~lze ji urèit jako $\mathbf{G} = \sqrt{ {\mathbf{G}_x}^2 + {\mathbf{G}_y}^2 }$.
         \item Ztenèení%Potlaèení nemaxim%non-maximum suppression
 
-          Pouze lokální maxima z~hodnot gradientù by mìli být oznaèeny za hrany, jedná se tedy o~potlaèení bodù, které maximem nejsou. Algoritmus postupnì prochází všechny pixely v~obrazu gradientù a~pro každý:
+          Pouze lokální maxima z~hodnot gradientù by mìla být oznaèena za hrany, jedná se tedy o~potlaèení bodù, které maximem nejsou. Algoritmus postupnì prochází všechny pixely v~obrazu gradientù a~pro každý:
           \begin{enumerate}
             \item Porovná sílu hrany pixelu se silou hran prvního pixelu ve smìru gradientu a~pixelu proti smìru gradientu.
             \item Pokud je síla hrany aktuálního pixelu nejvìtší, pak je hodnota zachována. V~opaèném pøípadì je odstranìna.
@@ -323,9 +328,9 @@
           Vìtšina nalezených hran jsou již skuteèné hrany v~obrazu, je ale možné, že i po potlaèení nemaximálních hodnot nìkteré z~nich jsou ještì pozùstatky šumu èi barevných zmìn. Z~tohoto dùvodu se urèí hodnota spodního prahu $T_1$ a~hodnota horního prahu $T_2$. Hranové pixely s~vìtší hodnotou gradientu, než je horní hranice $T_2$ jsou oznaèeny za silné. Hranové pixely jejihž hodnota gradientu leží mezi obìma prahy jsou oznaèeny za slabé a~ty s~nižší hodnotou než je spodní hranice $T_1$ jsou potlaèeny.
         \item Urèení hran
 
-          Je jisté, že hranové pixely oznaèené za silné jsou skuteèné hrany v~obrazu. U~hranových pixelù oznaèených jako slabé je ale stále možné, že vznikly napøíklad díky šumu. Základní myšlenkou pøi odstraòování takovýchto hran je, že s~velkou pravdìpodobností nejsou pøipojeny k žádné skuteèné hranì. Z~tohoto dùvodu jsou z~slabých hran zachovány pouze ty, které sousedí s~hranou silnou. 
+          Je jisté, že hranové pixely oznaèené za silné jsou skuteèné hrany v~obrazu. U~hranových pixelù oznaèených jako slabé je ale stále možné, že vznikly napøíklad díky šumu. Základní myšlenkou pøi odstraòování takovýchto hran je, že s~velkou pravdìpodobností nejsou pøipojeny k~žádné skuteèné hranì. Z~tohoto dùvodu jsou z~slabých hran zachovány pouze ty, které sousedí s~hranou silnou. 
 
-          Urèení tìchto hran je možné napøíklad za pomoci tzv. blob detekce, kde jsou jednotlivé hranové pixely rozdìleny do~blobù za použití jejich osmy sousedù. Bloby obsahující alespoò jeden hranový pixel oznaèený jako silný jsou zachovány, zatímco ostatní jsou potlaèeny.
+          Urèení tìchto hran je možné napøíklad za pomoci tzv. blob detekce, kde jsou jednotlivé hranové pixely rozdìleny do~blobù za použití jejich osmi sousedù. Bloby obsahující alespoò jeden hranový pixel oznaèený jako silný jsou zachovány, zatímco ostatní jsou potlaèeny.
       \end{enumerate}
       Ukázka použití Cannyho hranové detekce~viz. obr.~\ref{fig:canny_detect}.
 
@@ -343,32 +348,32 @@
       doplnili ji o~urèení pozic libovolných útvarù~\cite{hough_improve}. Pozdìji s~nástupem výkonìjších výpoèetních
       pøístrojù se zaèala používat v~odvìtvích jako jsou poèítaèová grafika a~poèítaèové vidìní.
       
-      Houghova transformace slouží k nalezení parametrického popisu objektù v~obraze. 
+      Houghova transformace slouží k~nalezení parametrického popisu objektù v~obraze. 
       Výstupem je parametrický prostor, který obsahuje informace o~relativní intenzitì
       (pravdìpodobnosti výskytu) tzv. kandidátù hledané struktury. Tento prostor je 
       nazýván jako Houghùv prostor. Poèet rozmìrù, který daný prostor bude mít urèuje 
       poèet neznámých parametrù v~rovnici vyhledávaného útvaru.
       
       V~této práci bude její použití spoèívat v~detekci pøímek, tedy okrajù vpichu v~materiálu zpùsobené
-      hrotem mikrotvrdomìru. Je tedy zøejmé, že je nutno k samotné detekci pøímku vyjádøit v~
+      hrotem mikrotvrdomìru. Je tedy zøejmé, že je nutno k~samotné detekci pøímku vyjádøit v~
       parametrickém tvaru. Nejpoužívanìjší vyjádøení pro pøímku v~kartézské soustavì pøedstavuje
       vyjádøení 
       $$y=mx+n,$$
       kde $m$ je smìrnice pøímky a~$n$ absolutní èlen.
-      Nicménì vertikální pøímky tvoøí problém, jelikož pro ty by parametr $m$ vedl k neomezeným hodnotám.
+      Nicménì vertikální pøímky tvoøí problém, jelikož pro ty by parametr $m$ vedl k~neomezeným hodnotám.
       Pro výpoèetní dùvody se proto použivá Hasseho normální forma 
       $$r = xcos(\theta) + ysin(\theta),$$
-      kde $r$ je vzdálenost pøímky od poèátku a~$\theta$ je úhel mezi normálou a~osou x (viz. obr.~\ref{fig:hough_lines}).
+      kde $r$ je vzdálenost pøímky od poèátku a~$\theta$ je úhel mezi normálou a~osou x (viz obr.~\ref{fig:hough_lines}).
 
       \begin{figure}
         \centering
-        \includegraphics[scale=0.5]{hough-lines.jpg}
+        \includegraphics[scale=0.6]{hough-lines.pdf}
         \caption{ Reprezentace pøímky $(r, \theta)$ v~prostoru $(x,y)$. }
         \label{fig:hough_lines}
       \end{figure}
 
-    \subsection{Urèení okrajù}
-      Pokud by hrany vpichu byly ideální, staèilo by nám vypoèítat prùseèíky nalezených pøímek a~urèit z~nich pøesné ohranièení vpichu. Jelikož ale hrany detekovaného vpichu nejsou ideálnì rovné, je výsledkem Hougovy transformace velké množství pøímek~(viz. obr.~\ref{fig:hough_detect_lines}), které je nutno dále zpracovat. 
+    \subsection{Urèení okrajù} \label{subsec:okraje}
+      Pokud by hrany vpichu byly ideální, staèilo by nám vypoèítat prùseèíky nalezených pøímek a~urèit z~nich pøesné ohranièení vpichu. Jelikož ale hrany detekovaného vpichu nejsou ideálnì rovné, je výsledkem Hougovy transformace velké množství pøímek~(viz obr.~\ref{fig:hough_detect_lines}), které je nutno dále zpracovat. 
 
       \begin{figure}
         \centering
@@ -377,7 +382,7 @@
         \label{fig:hough_detect_lines}
       \end{figure}
 
-      Postup v~našem pøípadì bude obdobný jako pro ideální hrany. Nejprve vypoèítáme prùseèíky všech pøímek, z~kterých následnì vytvoøíme skupiny~(viz. obr.~\ref{fig:hough_groups}). Skupina se skládá z~vypoèítaných prùseèíkù, kde alespoò dva mají menší vzdálenost, než je zvolená vzdálenost pro shlukování (parametr funkce).
+      Postup v~našem pøípadì bude obdobný jako pro ideální hrany. Nejprve vypoèítáme prùseèíky všech pøímek, z~kterých následnì vytvoøíme skupiny~(viz obr.~\ref{fig:hough_groups}). Skupina se skládá z~vypoèítaných prùseèíkù, kde alespoò dva mají menší vzdálenost, než je zvolená vzdálenost pro shlukování (parametr funkce).
 
       \begin{figure}
         \centering
@@ -389,7 +394,7 @@
       Nyní za pomoci støedu nalezeného v~kapitole~\ref{sec:center}, urèíme nejvhodnìjší skupiny pro jednotlivé vrcholy vpichu. Ze zpùsobu mìøení je totiž jisté, že až na minimální odchylku budou mít jednotlivé vrcholy se støedem vždy spoleènou jednu ze souøadnic. 
       Výsledná velikost vpichu je tak urèena jako vnitøní èást ohranièujících skupin.
       
-      Pro lepší pøesnost jako koneènou úpravu provedeme pøiblížení stran vpichu smìrem k jeho støedu. Stranu lze pøibližovat, dokud mezi její ohranièující skupinou, rozšíøenou o~nìjakou minimální velikost, a~pixely smìrem ke støedu je pouze bílá barva. Pak je jisté, že jsme ještì nenarazili ke skuteènou hranici vpichu a~prùseèíky byly nalezeny dále od okraje. Výsledná pozice detekce vpichu je patrná z~obr.~\ref{fig:hough_final}.
+      Pro lepší pøesnost jako koneènou úpravu provedeme pøiblížení stran vpichu smìrem k~jeho støedu. Stranu lze pøibližovat, dokud mezi její ohranièující skupinou, rozšíøenou o~nìjakou minimální velikost, a~pixely smìrem ke støedu je pouze bílá barva. Pak je jisté, že jsme ještì nenarazili ke skuteènou hranici vpichu a~prùseèíky byly nalezeny dále od okraje. Výsledná pozice detekce vpichu je patrná z~obr.~\ref{fig:hough_final}.
 
       \begin{figure}
         \centering
@@ -411,16 +416,17 @@
     \end{figure}
 
   \section{Slouèení výsledkù} \label{sec:slouceni}
-    V~této finální fázi detekce vpichu zpracováváme výsledky z~fázích pøedešlých a~na jejich základì pak rozhodneme zda byla detekce vpichu úspìšná èi nikoli. V~pøípadì úspìchu ještì dochází k drobným úpravám výsledné velikosti, výpoètu tvrdosti a~koneèné vykreslení výsledku.
+    V~této finální fázi detekce vpichu zpracováváme výsledky z~fází pøedešlých a~na jejich základì pak rozhodneme zda byla detekce vpichu úspìšná èi nikoli. V~pøípadì úspìchu ještì dochází k~drobným úpravám výsledné velikosti na co nejmenší prostor vpich ohranièující. Dále pak výpoètu tvrdosti a~koneèné vykreslení výsledku.
 
-    První èástí této fáze je porovnání výsledkù detekce z~Houghovy transformace~\ref{sec:hough} a~konvexního obalu~\ref{sec:convex_hull}. Pokud se výsledky tìchto metod s~minimální tolerancí liší alespoò ve dvou ne protilehlých stranách, pak detekci považujeme za neúspìšnou a~tvrdost nelze urèit. V~opaèném pøípadì pøejdeme k urèení koneèného ohranièení vpichu.
+    První èástí této fáze je porovnání výsledkù detekce z~Houghovy transformace~(viz sekce~\ref{sec:hough}) a~konvexního obalu~(popsáno v kapitole~\ref{sec:convex_hull}). Pokud se výsledky tìchto metod s~minimální tolerancí liší alespoò ve dvou rovnobìžných stranách, pak
+    nemùžeme s jistotou rozhodnout které øešení je pro danou stranu vhodné a díky absenci pøesné pozice strany od støedu protilehlé, nelze použít symetrizaci~(popsána níže). Tuto detekci považujeme za neúspìšnou a~tvrdost nelze urèit. V~opaèném pøípadì pøejdeme k~urèení koneèného ohranièení vpichu.
 
     U~stìn, které jsou pro obì øešení v~toleranci velikosti rozestupu, tedy prohlášeny za poziènì shodné, je pro výsledné ohranièení vybrána stìna z~metody konvexního obalu. Dùvodem je totiž co nejlépe ohranièit vpich, tedy co nejtìsnìji, a~to právì konvexní obal splòuje. Pro strany, kde dvojice stìn nejsou v~toleranci vzdálenosti je použita symetrizace.
 
-    K symetrizaci opìt využíváme døíve nalezený støed vpichu. Díky zpùsobu mìøící metody by mìl být vpich v~ideálním pøípadì po obou osách støedovì soumìrný, z~tohoto dùvodu neshodné strany dopoèítáme jako støedovì soumìrné od nalezené stìny pøes støed protìjší.
+    K~symetrizaci opìt využíváme døíve nalezený støed vpichu. Díky zpùsobu mìøící metody by mìl být vpich v~ideálním pøípadì po obou osách støedovì soumìrný, z~tohoto dùvodu neshodné strany dopoèítáme jako støedovì soumìrné od nalezené stìny pøes støed protìjší.
     Symetrizaci taktéž použijeme v~pøípadì, že vzdálenost od støedu jedné ze stìn se pøíliš liší od vzdáleností ostatních tøech.
 
-    V~závislosti na velikosti výsledného ohranièení je nakonec z~testu podle Vickerse~\ref{sec:vickers} vypoèítána tvrdost materiálu a~výsledek, vèetnì pozice detekce, je zakreslen do~obrazu~(viz. obr.~\ref{fig:detect_success}).
+    V~závislosti na velikosti výsledného ohranièení je nakonec z~testu podle Vickerse~(kapitola~\ref{sec:vickers}) vypoèítána tvrdost materiálu a~výsledek, vèetnì pozice detekce, je zakreslen do~obrazu~(viz obr.~\ref{fig:detect_success}).
 
     \begin{figure}
       \centering
@@ -432,37 +438,95 @@
   \section{Testování a~urèení parametrù} \label{sec:parameters}
     Tato èást programu již není souèástí samotné detekce, je ale dodána pro možnost pøizpùsobení se na nová testovací data a~opìt tak maximalizovat pøesnost výsledných mìøení.
 
-    Pøípadná zmìna detekovaného materiálu, a~s~tím spojené napø. velké zmìny odstínu pozadí vpichu, mùže vyvolat nepøesnosti detekce v~mìøeních a~nutnost úpravy parametrù pro implementované funkce. Pro automatizovanou detekci parametrù jsme zvolili genetický algoritmus. Ten pak dle zvolené velikosti populace, poètu generací a~minimálního pomìru úspìšnì detekovaných vpichù urèí hodnoty hledaných parametrù.
+    Pøípadná zmìna detekovaného materiálu, a~s~tím spojené napø. velké zmìny odstínu pozadí vpichu, mùže vyvolat nepøesnosti detekce v~mìøeních a~nutnost úpravy parametrù pro implementované funkce. Pro automatizovanou detekci parametrù jsme zvolili genetický algoritmus. Ten pak dle zadané velikosti populace, poètu generací a~minimálního pomìru úspìšnì detekovaných vpichù urèí hodnoty hledaných parametrù.
 
-    Použití evoluèního algoritmu na datovém setu 44 obrazových dat s~25 generacemi o~velikosti populace 20 je s~porovnáním pro standardní hodnoty znázornìno v~tabulce~\ref{tab:evolution}.
+    Použití evoluèního algoritmu na datovém setu 44 obrazových dat s~25 generacemi o~velikosti populace 20 je s~porovnáním pro standardní hodnoty znázornìno v~tabulce~\ref{tab:evolution}. 
+    
+    Jednotlivé parametry hledané evoluèním algoritmem a pro možné zadání do programu jsou:
+    \begin{enumerate}
+      \item Tvar jádra
+
+        Tvar jádra matice použitého pro morfologické operace pøi odstraòování šumu~(kapitola \ref{subsec:morphology}). Tvary jader jsou již souèástí knihovny OpenCV. Možné tvary jsou $0=\textit{MORPH\_RECT}$, $1=\textit{MORPH\_CROSS}$ a $2=\textit{MORPH\_ELLIPSE}$.
+      \item Velikost jádra
+
+        Velikost jádra pøíslušné matice pøi odstraòování šumu.
+      \item Vyplnìní støedu
+
+        Velikost jádra matice pøi vyplnìní støedu vpichu~(kapitola \ref{sec:center}).
+      \item Práh Houghovy transformace
+
+        Hodnota prahu Houghovy transformace~(kapitola \ref{sec:hough}). Vìtší hodnota prahu má za pøíèinu možné omezení v poètu nalezených pøímek. Omezí totiž kritéria pro úspìšné prohlášení kandidátù za hledané struktury.
+      \item Pravdìpodobnostní Houghova transformace
+
+        Alternativní pøístup Houghovy transformace implementovaný v OpenCV. Vyhledávány jsou úseèky reprezentované jejich poèáteèním a koncovým bodem, namísto pøímek tvaru $(r, \theta)$ pro standardní Houghovu transformaci.
+      \item Shlukování skupin
+
+        Vzdálenost pro shlukování prùseèíkù nalezených pøímek do skupin~(kapitola \ref{subsec:okraje}).
+      \item Tolerance posunu skupin
+
+        Hledání nejvhodnìjších skupin prùseèíkù pro jednotlivé vrcholy vpichu. Tolerance urèuje maximální posun od osy støedu vpichu~(viz kapitola~\ref{subsec:okraje}). 
+      \item Srovnávání výsledkù
+
+        Maximální tolerance pøi srovnávání výsledkù z Houghovy transformace a konvexního obalu~(viz kapitola~\ref{sec:slouceni}).
+      \item Symetrizace
+
+        Velikost tolerance pøi symetrizaci koneèného ohranièení vpichu podle nalezeného støedu~(kapitola~\ref{sec:slouceni}).
+    \end{enumerate}
+    Veškeré hodnoty standardních parametrù a parametrù kódovaných nejlepšími jedinci na konci zmínìné evoluce jsou popsány v tabulce~\ref{tab:parametry}. 
+
+
     \begin{table}
+    \caption{ Porovnání evoluèního algoritmu. }
+    \label{tab:evolution}
     \begin{tabular}{| l | c | c | c |} 
       \hline
       \multirow{2}{*}{prùbìh} 
 	& minimální pomìr & detekováno & úspìšnost\\
 	& detekce & vpichù & detekce\\
       \hline \hline
-      Bìžný bìh programu & - & 44/44 & 98.99\%\\
+      Výchozí parametry & - & 44/44 & 98.99\%\\
       \hline
       \multirow{2}{*}{Evoluce} 
        & 90~\% & 44/44 & 99.25~\%\\
        & 50~\% & 27/44 & 99.53~\%\\
       \hline  
     \end{tabular}
-    \caption{ Porovnání evoluèního algoritmu. }
-    \label{tab:evolution}
     \end{table}
 
     Jako další metodou vyhledání vhodných parametrù jsme vyzkoušeli hledání hrubou silou. Tato metoda se ale i pro malá množství dat ukázala z~èasových dùvodù nepoužitelnou.
+
+    \begin{table}
+    \caption{ Hodnoty parametrù. }
+    \label{tab:parametry}
+    \begin{tabular}{| l | c | c | c |} 
+      \hline
+      \multirow{2}{*}{Parametr} 
+        & Výchozí & \multicolumn{2}{|c|}{Eevoluce s min. úspìšností:} \\ %Nejlepší jedinci evoluce s min. úspìšností
+        & hodnoty & 100 \% & 50 \% \\
+      \hline \hline
+      Tvar jádra. & 1 & 1 & 1 \\
+      Velikost jádra. & 17 & 13 & 24 \\
+      Vyplnìní støedu. & 6 & 6 & 5 \\
+      Práh Houghovy transformace. & 50 & 54 & 70 \\
+      Pravdìpodobnostní Hougova tr. & ne & ne & ano \\
+      Shlukování skupin. & 5 & 29 & 24 \\
+      Tolerance posunu skupin. & 100 & 47 & 18 \\
+      Srovnávání výsledkù. & 10 & 21 & 9 \\
+      Symetrizace. & 10 & 15 & 14 \\
+      \hline  
+    \end{tabular}
+    \end{table}
   
 \chapter{Mìøení kvality výstupu}
-  Testování kvality našeho programu provádíme na testovacích datech pøiložených na CD. Veškerou následující pøesnost mìøení urèujeme vùèi ruènì namìøeným výsledkùm. Dále pak porovnáme výsledky originálního SW a~pøedešlé práce MICHAL, jejich namìøenou mikrotvrdost, úspìšnost mìøení a~poèet úspìšnì zmìøených vpichù.
+  Testování kvality našeho programu provádíme na testovacích datech pøiložených na CD. Veškerou následující pøesnost mìøení urèujeme vùèi ruènì anotovaným výsledkùm. Dále pak porovnáme výsledky originálního SW a~pøedešlé práce MICHAL, jejich namìøenou mikrotvrdost, úspìšnost mìøení a~poèet úspìšnì zmìøených vpichù.
 
-  Testovací data jsou rozdìleny ve ètyøech datových setech. Každý z~tìchto setù jsme ohodnotili zmínìnými programy pro urèení mikrotvrdosti a~výsledky porovnali s~touto prací. Jednotlivé pøesnosti jsou pak patrné z~detailnìjší tabulky~\ref{tab:DAR6_RD_detailed} pro datový set \verb|DAR6-RD| a~v kratší podobì jednotlivé tabulky pro datové sety \verb|DAR6-RD|~\ref{tab:DAR6_RD}, \verb|DAR6-TD|~\ref{tab:DAR6_TD}, \verb|DR6-RD|~\ref{tab:DR6_RD}, \verb|DR6-TD|~\ref{tab:DR6_TD} a~tabulky pro celkové ohodnocení~\ref{tab:eval_all}.
-  Mìøené výsledky této práce jsou pro standardní hodnoty parametrù programu.
+  Testovací data jsou rozdìlena ve ètyøech datových setech. Každý z~tìchto setù jsme ohodnotili zmínìnými programy pro urèení mikrotvrdosti a~výsledky porovnali s~touto prací. Jednotlivé pøesnosti jsou pak patrné z~detailnìjší tabulky~\ref{tab:DAR6_RD_detailed} pro datový set \verb|DAR6-RD| a~v kratší podobì jednotlivé tabulky pro datové sety \verb|DAR6-RD|~\ref{tab:DAR6_RD}, \verb|DAR6-TD|~\ref{tab:DAR6_TD}, \verb|DR6-RD|~\ref{tab:DR6_RD}, \verb|DR6-TD|~\ref{tab:DR6_TD} a~tabulky pro celkové ohodnocení~\ref{tab:eval_all}.
+  Mìøené výsledky této práce jsou pro standardní hodnoty parametrù programu~(viz tabulka~\ref{tab:parametry}).
 
   
   \begin{table}
+    \caption{Výsledky mìøení mikrotvrdosti pro jednotlivá obrazová data z~testovacího datového setu \texttt{DAR6-RD}.}
+    \label{tab:DAR6_RD_detailed}
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{| l | c | c | c | c |} 
       \hline
@@ -517,12 +581,10 @@
       \hline
     \end{tabular}
     \end{adjustbox}
-    \caption{Výsledky mìøení mikrotvrdosti pro jednotlivá obrazová data z~testovacího datového setu \texttt{DAR6-RD}.}
-    \label{tab:DAR6_RD_detailed}
     \end{table}
 
     Z~tabulky~\ref{tab:DAR6_RD_detailed} je patrné, že originální SW postrádal spolehlivost pro zmìøení daného vstupu, jeho výsledky jsou ale velice pøesné. Tento problém sice program MICHAL vyøešil a~na tìchto setech dat je schopen zmìøit a~vyhodnotit veškerá z~nich. Jeho pøesnost se ale pohybuje pouze kolem $86$~\%.
-    Tato práce pro tento konkrétní set je nejen schopna vyhodnotit veškerá data, ale pøesnost mìøení se blíží ruènì namìøeným datùm s~$99$~\% pøesností~(viz. tabulka \ref{tab:DAR6_RD}).
+    Tato práce pro tento konkrétní set je nejen schopna vyhodnotit veškerá data, ale pøesnost mìøení se blíží ruènì namìøeným datùm s~$99$~\% pøesností~(viz tabulka \ref{tab:DAR6_RD}).
 
     Testování na zbývajících datových setech potvrzuje pøedchozí zjištìní s~pouze malými zmìnami v~pøesnosti. 
     Z~grafu~\ref{fiq:uspesnost_mereni} je dále patrné, že velká vìtšina namìøených hodnot pro tuto práci má pøesnost pøesahující $96$~\% s~podstatnì vìtším množstvím zmìøených dat oproti originálnímu SW.
@@ -536,6 +598,8 @@
 
 
     \begin{table}
+      \caption{Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DAR6-RD}.}
+      \label{tab:DAR6_RD}
       \begin{adjustbox}{width=\textwidth}
       \begin{tabular}{| l | l | c | c | c |} 
         \hline
@@ -548,7 +612,7 @@
           & min & 97,41~\% & 78,02~\% & 94,03~\% \\
           & max & 100~\% & 302,38~\% & 105,81~\% \\
         \hline
-        \multirow{2}{*}{Pøesnost mìøení} 
+        \multirow{2}{*}{Pøesnost zmìøené tvrdosti} 
           & min & 97,41~\% & 33,07~\% & 94,03~\% \\
           & max & 100~\% & 99,75~\% & 100~\% \\
         \hline
@@ -562,11 +626,11 @@
         \hline
       \end{tabular}
       \end{adjustbox}
-      \caption{Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DAR6-RD}.}
-      \label{tab:DAR6_RD}
     \end{table}
 
     \begin{table}
+      \caption{Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DAR6-TD}.}
+      \label{tab:DAR6_TD}
       \begin{adjustbox}{width=\textwidth}
       \begin{tabular}{| l | l | c | c | c |}
         \hline
@@ -579,7 +643,7 @@
           & min & 84,17~\% & 76,01~\% & 94,03~\% \\
           & max & 100~\% & 313,47~\% & 105,81~\% \\
         \hline
-        \multirow{2}{*}{Pøesnost mìøení}
+        \multirow{2}{*}{Pøesnost zmìøené tvrdosti}
           & min & 84,17~\% & 31,9~\% & 88,96~\% \\
           & max & 100~\% & 99,75~\% & 100~\% \\
         \hline
@@ -593,11 +657,11 @@
         \hline
       \end{tabular}
       \end{adjustbox}
-      \caption{Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DAR6-TD}.}
-      \label{tab:DAR6_TD}
     \end{table}
 
     \begin{table}
+      \caption{ Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DR6-RD}. }
+      \label{tab:DR6_RD}
       \begin{adjustbox}{width=\textwidth}
       \begin{tabular}{| l | l | c | c | c |} 
         \hline
@@ -610,7 +674,7 @@
           & min & 91,39~\% & 77,11~\% & 96,34~\% \\
           & max & 100~\% & 2115,05~\% & 103,23~\% \\
         \hline
-        \multirow{2}{*}{Pøesnost mìøení} 
+        \multirow{2}{*}{Pøesnost zmìøené tvrdosti} 
           & min & 91,39~\% & 4,73~\% & 96,34~\% \\
           & max & 100~\% & 99,36~\% & 100~\% \\
         \hline
@@ -624,11 +688,11 @@
         \hline
       \end{tabular}
       \end{adjustbox}
-      \caption{ Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DR6-RD}. }
-      \label{tab:DR6_RD}
     \end{table}
 
     \begin{table}
+      \caption{ Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DR6-TD}. }
+      \label{tab:DR6_TD}
       \begin{adjustbox}{width=\textwidth}
       \begin{tabular}{| l | l | c | c | c |} 
         \hline
@@ -641,7 +705,7 @@
           & min & 11,94~\% & 71,89~\% & 90,68~\% \\
           & max & 100~\% & 360,62~\% & 103,95~\% \\
         \hline
-        \multirow{2}{*}{Pøesnost mìøení} 
+        \multirow{2}{*}{Pøesnost zmìøené tvrdosti} 
           & min & 11,94~\% & 27,73~\% & 90,68~\% \\
           & max & 100~\% & 100~\% & 99,91~\% \\
         \hline
@@ -655,11 +719,11 @@
         \hline
       \end{tabular}
       \end{adjustbox}
-      \caption{ Porovnání úspìšnosti jednotlivých programù na testovacím setu dat \texttt{DR6-TD}. }
-      \label{tab:DR6_TD}
     \end{table}
 
     \begin{table}
+      \caption{ Porovnání úspìšnosti jednotlivých programù na všech 177 testovacích datech. }
+      \label{tab:eval_all}
       \begin{adjustbox}{width=\textwidth}
       \begin{tabular}{| l | l | c | c | c |} 
         \hline
@@ -672,7 +736,7 @@
           & min & 11,94~\% & 71,89~\% & 88,96~\% \\
           & max & 100~\% & 2115,05~\% & 105,81~\% \\
         \hline
-        \multirow{2}{*}{Pøesnost mìøení} 
+        \multirow{2}{*}{Pøesnost zmìøené tvrdosti} 
           & min & 11,94~\% & 4,73~\% & 88,96~\% \\
           & max & 100~\% & 100~\% & 100~\% \\
         \hline
@@ -686,18 +750,16 @@
         \hline
       \end{tabular}
       \end{adjustbox}
-      \caption{ Porovnání úspìšnosti jednotlivých programù na všech 177 testovacích datech. }
-      \label{tab:eval_all}
     \end{table}
 
 \begin{conclusion}
   %Závìr
   Tato práce pojednává o~metodách zpracování digitálního obrazu a~jejich uplatnìní v~poèítaèové praxi. Zkoumáním postupu pøedešlé práce MICHAL se nám podaøilo odhalit pøíèiny nepøesností pøi vyhodnocování obrazových dat z~mikrotvrdomìru a~navrhnout a~implementovat algoritmus, který tyto nedostatky eliminuje. Deterministickým pøístupem jsme schopni v~obrazu detekovat vpich, zmìøit jeho rozmìry a~vypoèítat mikrotvrdost pro dané mìøení.
 
-  Implementovaný algoritmus jsme otestovali na množinì testovacích dat a~výsledky porovnali s~originálním SW a~pøedešlou prací MICHAL. Výrazné zlepšení je hned patrné v~poètu úspìšnì namìøených dat s~úspìšností $96$~\% oproti $44$\% spolehlivosti originálního SW. Výslednou pøesnost pro zmìøená data se také podaøilo zlepšit. V~porovnání s~ruènì zmìøenými výsledky dosahuje implementovaný algoritmus pøesnosti $98,56$~\%, zatímco originální SW dosahuje pøesnosti $97,95$~\% a~program MICHAL pouze $84,24$~\%.
+  Implementovaný algoritmus jsme otestovali na množinì testovacích dat a~výsledky porovnali s~originálním SW a~pøedešlou prací MICHAL. Výrazné zlepšení je hned patrné v~poètu úspìšnì namìøených dat s~úspìšností $96$~\% oproti $44$\% spolehlivosti originálního SW. Výslednou pøesnost pro zmìøená data se také podaøilo zlepšit. V~porovnání s~ruènì anotovanými výsledky dosahuje implementovaný algoritmus pøesnosti $98,56$~\%, zatímco originální SW dosahuje pøesnosti $97,95$~\% a~program MICHAL pouze $84,24$~\%.
 
   Veškeré cíle vytyèené v~zadání práce se nám podaøilo splnit.
-  Vìøím, že implementovaný program mùže úspìšnì posloužit v~praxi jako alternativa k originálnímu SW dodávaného s~mikrotvrdomìrem, pro lepší pøesnost mìøení s~redukcí poètu nutných testù. 
+  Vìøím, že implementovaný program mùže úspìšnì posloužit v~praxi jako alternativa k~originálnímu SW dodávaného s~mikrotvrdomìrem, pro lepší pøesnost mìøení s~redukcí poètu nutných testù. 
   %Tato práce navíc mùže posloužit zájemcùm o~problematiku poèítaèového vidìní a~zpracování digitálního obrazu v~jejím lepším pochopení.
 
 \end{conclusion}
@@ -712,6 +774,7 @@
 \begin{description}
   \item[OpenCV] Open source computer vision
   \item[SW] Software
+  \item[MICHAL] MICro Hardness AnaLysis
 \end{description}
 
 \chapter{Obsah pøiloženého CD}
