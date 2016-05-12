@@ -170,7 +170,7 @@ bool GetTemplateImg(Mat & temp){
 	char current_path[FILENAME_MAX];
 	getCurrentDir(current_path, sizeof(current_path));
 	string filename = current_path;
-	filename += "/src/template_image/puncture_template.jpg";
+	filename += "/template_image/puncture_template.jpg";
 	
 	cout << filename << endl;
 

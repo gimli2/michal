@@ -63,6 +63,7 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "       Default directory is ../out" << endl;
 	cout << "  -t" << endl;
 	cout << "       Filename to write text results." << endl;
+	cout << "" << endl;
 	cout << "Parameter search options:" << endl;
 	cout << "		INPUTFILEs required format: IMAGE HARDNESS" << endl;
 	cout << "  -e	Evolution algorithm search" << endl;
@@ -70,6 +71,7 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "		number_of_generations = generations count" << endl;
 	cout << "		minimum_evaluation_percentage <0,100>" << endl;
 	cout << "  -b	Brute force search" << endl;
+	cout << "" << endl;
 	cout << "Process options:" << endl;
 	cout << "  -k	Noice remove kernel shape:" << endl;
 	cout << "		0 = MORPH_RECT, 1 = MORPH_ELLIPSE (default = 1)" << endl;
