@@ -145,24 +145,41 @@ void DrawHardness(Mat & image, Result result){
 	double fontScale = 1.0;
 	int thickness = 2;
 
+
+
+	if (cfg.one_line){
+		ss << std::setprecision(2) << fixed 
+		 << "H: " << hardness_result.hardness
+		 << " d1: " << hardness_result.w << " d2: " << hardness_result.h
+		 << std::setprecision(0) << " x: " << result.top << " y: " << result.left
+		 << " " << previous_path << endl;
+		text = ss.str();
+		cout << text << endl;
+		if (cfg.writef_open) cfg.write_file << text;
+	}
+	else{
+		ss << "Top:  " << result.top << " px" << " Left: " << result.left << " px" << endl;
+		ss << std::setprecision(2) << fixed << "Diagonal1:  " << hardness_result.w << " um ";
+		ss << "Diagonal2:  " << hardness_result.h << " um" << endl;
+		ss << "Hardness: " << hardness_result.hardness << " HV";
+		text = ss.str();
+		cout << text << endl;
+		if (cfg.writef_open) cfg.write_file << text;
+	}
+
+	ss.str(string());
 	ss << std::setprecision(2) << fixed << "Diagonal1:  " << hardness_result.w << " um";
 	text = ss.str();
-	cout << text;
-	if (cfg.writef_open) cfg.write_file << text;
 	putText(image, text, Point(10, 30), fontFace, fontScale, Scalar::all(0), thickness);
 
 	ss.str(string());
-	ss << "Diagonal2:  " << hardness_result.w << " um";
+	ss << "Diagonal2:  " << hardness_result.h << " um";
 	text = ss.str();
-	cout << " " << text << endl;
-	if (cfg.writef_open) cfg.write_file << " " << text << "\r\n";
 	putText(image, text, Point(10, 70), fontFace, fontScale, Scalar::all(0), thickness);
 
 	ss.str(string());
 	ss << "Hardness: " << hardness_result.hardness << " HV";
 	text = ss.str();
-	cout << text << endl;
-	if (cfg.writef_open) cfg.write_file << text << "\r\n";
 	putText(image, text, Point(10, 110), fontFace, fontScale, Scalar::all(0), thickness);
 }
 

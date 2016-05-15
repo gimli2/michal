@@ -38,6 +38,7 @@ struct config{
 	bool writef_open;
 	ofstream write_file;
 	string dir_out;
+	bool one_line;
 
 	vector<string> images;
 	vector<double> image_hardness;

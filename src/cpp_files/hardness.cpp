@@ -39,6 +39,7 @@ HardnessResult computeHardness(Result res) {
 }
 
 void setLens(unsigned int magnification){
+	/*
 	switch (magnification)
 	{
 	case (40):
@@ -51,4 +52,6 @@ void setLens(unsigned int magnification){
 		pxsize = 0.1277*1E-6; //objektiv 40x
 		break;
 	}
+	*/
+	pxsize = (0.20432 / (magnification*magnification)) *1E-3;
 }

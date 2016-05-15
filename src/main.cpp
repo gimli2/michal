@@ -50,7 +50,6 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "  -h" << endl;
 	cout << "       Show this help." << endl;
 	cout << "  -d" << endl;
-	//cout << "       Debug level (default 0)." << endl;
 	cout << "       0 = result output only. (default)" << endl;
 	cout << "       1 = + all information during detection." << endl;
 	cout << "       2 = + saving steps images." << endl;
@@ -63,6 +62,11 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "       Default directory is ../out" << endl;
 	cout << "  -t" << endl;
 	cout << "       Filename to write text results." << endl;
+	cout << "  -j" << endl;
+	cout << "       Write results information text in one line." << endl;
+	cout << "  -z" << endl;
+	cout << "       Lense zoom." << endl;
+	cout << "       Default is 40x with size of one pixel = 0.20432*10^-3 m." << endl;
 	cout << "" << endl;
 	cout << "Parameter search options:" << endl;
 	cout << "		INPUTFILEs required format: IMAGE HARDNESS" << endl;
@@ -98,9 +102,10 @@ bool readParams(int argc, char* const* argv, config* cfg) {
 	
 	// default values
 	// ------ i/o ---------
-	cfg->dir_out = "/out/";
+	cfg->dir_out = "/../out/";
 	string fout;
 	cfg->writef_open = false;
+	cfg->one_line = false;
 	// ------ debug ----------
 	cfg->debug_level = 0;
 	// ------- preproccess -----------
@@ -152,6 +157,10 @@ bool readParams(int argc, char* const* argv, config* cfg) {
 			cfg->parameters_search = 2;
 			continue;
 		}
+		if (next_option == 'j'){
+			cfg->one_line = true;
+			continue;
+		}
 
 		// parameter required argumets
 		if (i >= argc){
@@ -159,6 +168,12 @@ bool readParams(int argc, char* const* argv, config* cfg) {
 			return false;
 		}
 		switch (next_option) {
+		case 'z':
+			int magnification;
+			if (!readInt(magnification, argv[i++], "Magnification"))
+				return false;
+			setLens(magnification);
+			break;
 		case 'd':
 			if (!readInt(cfg->debug_level, argv[i++], "Debug level"))
 				return false;
@@ -409,8 +424,8 @@ int main(int argc, char* argv[])
 			END_ERROR
 		}
 		else{
-			cout << endl << "Proccessing image " << image_path << endl;
-			if (cfg.writef_open) cfg.write_file << "\r\n" << "Proccessing image " << image_path << "\r\n";
+			if (!cfg.one_line && cfg.debug_level == 0) cout << endl << "Proccessing image " << image_path << endl;
+			if (cfg.writef_open && !cfg.one_line) cfg.write_file << "\r\n" << "Proccessing image " << image_path << "\r\n";
 		}
 
 
