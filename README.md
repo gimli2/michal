@@ -20,3 +20,7 @@ Compile:
 
 ### Run program:
 Run src/michal-win.exe or src/michal-lin (built by export LD_LIBRARY_PATH=`pwd`/opencv/lib) or main (built by make).
+
+### Results
+Image with detected puncture:
+![Image with detected puncture](https://raw.githubusercontent.com/gimli2/michal/master/text/evaluated_image.jpg)
