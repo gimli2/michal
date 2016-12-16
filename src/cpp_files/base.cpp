@@ -187,9 +187,9 @@ bool GetTemplateImg(Mat & temp){
 	char current_path[FILENAME_MAX];
 	getCurrentDir(current_path, sizeof(current_path));
 	string filename = current_path;
-	filename += "/template_image/puncture_template.jpg";
+	filename += "/" + cfg.puncture_tpl_file;
 	
-	cout << filename << endl;
+	//cout << filename << endl;
 
 	temp = imread(filename.c_str(), 0);
 	if (!temp.data)

@@ -43,7 +43,7 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "MICHAL - MICro Hardness AnaLysis v.2." << endl << endl;
 	cout << "Aplication for analysis of micro hardness measurements." << endl << endl;
 	//cout << "Usage: " << argv[0] << " [options] -i INPUTFILEs" << endl << endl;
-	cout << "Usage: " << argv[0] << "[Common_options] [-x|Process_options] {[-i][INPUTFILEs]}" << endl;
+	cout << "Usage: " << argv[0] << " [Common_options] [-x|Process_options] {[-i][INPUTFILEs]}" << endl;
 	cout << "INPUTFILEs:" << endl;
 	cout << "       Image filenames to analyse." << endl;
 	cout << "Common options:" << endl;
@@ -59,7 +59,10 @@ void printUsage(int exit_code, char* const* argv) {
 	cout << "       Textfile of image filenames to analyse." << endl;
 	cout << "  -o" << endl;
 	cout << "       Evaluaded images directory." << endl;
-	cout << "       Default directory is ../out" << endl;
+	cout << "       Default directory is ./out" << endl;
+	cout << "  -m" << endl;
+	cout << "       Filename of puncture template in JPG format." << endl;
+	cout << "       Default: ./templates/puncture_template_smooth.jpg" << endl; 
 	cout << "  -t" << endl;
 	cout << "       Filename to write text results." << endl;
 	cout << "  -j" << endl;
@@ -102,7 +105,8 @@ bool readParams(int argc, char* const* argv, config* cfg) {
 	
 	// default values
 	// ------ i/o ---------
-	cfg->dir_out = "/../out/";
+	cfg->dir_out = "/out/";
+	cfg->puncture_tpl_file = "templates/puncture_template_smooth.jpg";
 	string fout;
 	cfg->writef_open = false;
 	cfg->one_line = false;
@@ -180,6 +184,9 @@ bool readParams(int argc, char* const* argv, config* cfg) {
 			break;
 		case 'i':
 			cfg->fin = argv[i++];
+			break;
+		case 'm':
+			cfg->puncture_tpl_file = argv[i++];
 			break;
 		case 't':
 			fout = argv[i++];

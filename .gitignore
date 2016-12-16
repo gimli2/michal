@@ -1,6 +1,7 @@
 imgs/*
 src/*.o
 *.o
+out/*
 imgs/pokus
 imgs/horcik
 opencv/lib/libopencv_highgui.so.3.1

@@ -38,6 +38,7 @@ struct config{
 	bool writef_open;
 	ofstream write_file;
 	string dir_out;
+	string puncture_tpl_file;
 	bool one_line;
 
 	vector<string> images;
