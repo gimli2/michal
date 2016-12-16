@@ -3,11 +3,13 @@ SOURCES= src/cpp_files
 HEADERS= src/header_files
 
 compile: main.o base.o convexHull.o detect.o evaluate.o hardness.o hough.o preprocess.o parameters.o
-	g++ $(FLAGS) main.o base.o convexHull.o detect.o evaluate.o hardness.o hough.o preprocess.o parameters.o -o src/main -lpthread -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs -lopencv_video
+	g++ $(FLAGS) main.o base.o convexHull.o detect.o evaluate.o hardness.o hough.o preprocess.o parameters.o -o src/michal-lin -lpthread -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs -lopencv_video
 
-all: links compile libs
+all: links compile libs cleanobjects
 clean:
 	rm -rf *.o 2>/dev/null;find ./opencv/lib/ -type l -delete
+cleanobjects:
+	rm -rf *.o 2>/dev/null;
 run: 
 	cd ./test_scripts;chmod +x ./run_it\ -\ all_in_pictures_data.sh;./run_it\ -\ all_in_pictures_data.sh
 

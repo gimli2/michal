@@ -1,3 +1,4 @@
+#!/bin/bash
 ln -s libopencv_core.so.3.1.0 libopencv_core.so.3.1
 ln -s libopencv_core.so.3.1 libopencv_core.so
 ln -s libopencv_highgui.so.3.1.0 libopencv_highgui.so.3.1
