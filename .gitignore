@@ -1,0 +1,17 @@
+imgs/*
+src/*.o
+*.o
+imgs/pokus
+imgs/horcik
+opencv/lib/libopencv_highgui.so.3.1
+opencv/lib/libopencv_imgproc.so
+opencv/lib/libopencv_core.so.3.1
+opencv/lib/libopencv_imgproc.so.3.1
+opencv/lib/libopencv_videoio.so.3.1
+opencv/lib/libopencv_imgcodecs.so
+opencv/lib/libopencv_core.so
+opencv/lib/libopencv_video.so.3.1
+opencv/lib/libopencv_imgcodecs.so.3.1
+opencv/lib/libopencv_video.so
+opencv/lib/libopencv_videoio.so
+opencv/lib/libopencv_highgui.so
