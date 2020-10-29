@@ -45,3 +45,6 @@ preprocess.o: $(SOURCES)/preprocess.cpp $(HEADERS)/preprocess.h
 
 parameters.o: $(SOURCES)/parameters.cpp $(HEADERS)/parameters.h $(HEADERS)/base.h $(HEADERS)/convexHull.h $(HEADERS)/detect.h $(HEADERS)/evaluate.h $(HEADERS)/hardness.h $(HEADERS)/hough.h $(HEADERS)/preprocess.h
 	g++ -c $(FLAGS) $(SOURCES)/parameters.cpp -o parameters.o
+
+via-docker:
+	make -f Makefile.docker

@@ -1,0 +1,41 @@
+
+#
+# berryamin@github.com
+#
+DOCKER_TAG=michalv2-u18.04
+
+BUILD_AREA_PREFIX =
+SRC_PREFIX =
+TARGET_PREFIX =
+
+DOCKER_VOLUME_DEFS += -v $(TARGET_PREFIX)/target:$(TARGET_PREFIX)/target
+DOCKER_VOLUME_DEFS += -v $(SRC_PREFIX)/src/michal:$(SRC_PREFIX)/src/michal
+DOCKER_VOLUME_DEFS += -v $(BUILD_AREA_PREFIX)/build-area:$(BUILD_AREA_PREFIX)/build-area 
+
+all: warn-beginner build-docker-image compile-via-docker run-via-docker
+
+.PHONY: clean
+clean: clean-docker-image
+
+warn-beginner:
+	@echo
+	@echo BEGINNER MODE - to disable this message you may deactivate "warn-beginner" target in Makefile.docker
+	@echo
+	@echo BUILD_AREA_PREFIX defaults to /, you may change it in Makefile.docker
+	@echo SRC_PREFIX defaults to /, you may change it in Makefile.docker
+	@echo TARGET_PREFIX defaults to /, you may change it in Makefile.docker
+	@echo
+	@sleep 4
+
+
+build-docker-image:
+	docker image ls $(DOCKER_TAG) --format "table {{.Repository}}:{{.Tag}}" | egrep ^$(DOCKER_TAG) || docker build --target $(DOCKER_TAG) -t $(DOCKER_TAG) --progress=plain .
+
+clean-docker-image:
+	docker rmi -f $(DOCKER_TAG)
+
+debug-shell:
+	docker run $(DOCKER_VOLUME_DEFS) -it $(DOCKER_TAG) /bin/bash
+
+compile-via-docker:
+	docker run $(DOCKER_VOLUME_DEFS) -w /src/michal -i -a STDOUT -t $(DOCKER_TAG)  /bin/bash -c " make CFLAGS=-fPIC "
